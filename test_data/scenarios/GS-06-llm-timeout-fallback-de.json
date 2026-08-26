@@ -1,0 +1,75 @@
+{
+  "scenario_id": "GS-06-llm-timeout-fallback-de",
+  "description": "LLM provider times out; safe localised (de) fallback is delivered instead.",
+  "seed": 106,
+  "customer": {
+    "customer_id": "hfb-cust-gs06",
+    "customer_type": "corporate",
+    "region": "DE",
+    "language": "de",
+    "segment": "frequent",
+    "created_at": "2025-01-01T00:00:00Z",
+    "consent": {
+      "marketing": true,
+      "analytics": true
+    },
+    "negotiated_rate_plan": "corporate-STD-2026",
+    "last_booking_at": null
+  },
+  "trigger": {
+    "trigger_id": "extended_dwell_v1",
+    "enabled": true,
+    "match": {
+      "signal_type": "extended_dwell",
+      "conditions": []
+    },
+    "type": "in_session",
+    "deferred": null,
+    "frequency_cap": {
+      "per": "P7D",
+      "max": 1
+    },
+    "precedence": 100,
+    "message_template_ref": "tmpl_extended_dwell"
+  },
+  "events": [
+    {
+      "event_id": "c4155ae4-0c15-4663-8b08-59795c7e9d19",
+      "customer_id": "hfb-cust-gs06",
+      "session_id": "sess-gs06-00",
+      "signal_type": "extended_dwell",
+      "occurred_at": "2026-09-01T10:05:00Z",
+      "source": "booking_widget",
+      "context": {
+        "pickup": "FRA",
+        "dropoff": "FRA",
+        "pickup_at": "2026-09-01T10:00:00Z",
+        "return_at": "2026-09-04T10:00:00Z",
+        "vehicle_class": "FCAR",
+        "step": "select_vehicle",
+        "error_code": null,
+        "dwell_ms": 95000
+      },
+      "consent": {
+        "marketing": true,
+        "analytics": true
+      },
+      "schema_version": "1.0.0"
+    }
+  ],
+  "llm_response": null,
+  "llm_timeout": true,
+  "replies": [
+    "ja, gerne"
+  ],
+  "resolves": true,
+  "booking_api_failures": [],
+  "prior_engagements": [],
+  "expected": {
+    "fired": true,
+    "suppressed_reason": null,
+    "message_kind": "fallback",
+    "terminal_state": "converted",
+    "delivered_excludes": []
+  }
+}

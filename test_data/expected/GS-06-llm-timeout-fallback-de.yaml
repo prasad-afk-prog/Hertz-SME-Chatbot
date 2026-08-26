@@ -1,0 +1,5 @@
+fired: true
+suppressed_reason: null
+message_kind: fallback
+terminal_state: converted
+delivered_excludes: []

@@ -1,0 +1,87 @@
+flowchart TD
+
+    subgraph CJ["CUSTOMER JOURNEY (post-login)"]
+        A["Customer logs into HFB portal"] --> B{"Behavioural signal on portal / booking widget"}
+        B -->|"Searches, no booking"| C["Search, no convert"]
+        B -->|"Views rates, no progress"| D["Rate view, no progress"]
+        B -->|"Starts booking, exits mid-flow"| E["Booking abandoned (step captured)"]
+        B -->|"Error / validation failure"| F["Error hit during search or booking"]
+        B -->|"Long dwell, no progress on a step"| G["Extended time on single step"]
+        B -->|"Logs in, session ends, no booking"| H["Session ended, no booking"]
+        B -->|"Repeated same route/dates, no booking"| I["Deferred: repeated search across sessions"]
+        B -->|"No booking for defined dormancy period"| J["Deferred: dormant customer"]
+    end
+
+    subgraph BE["BACKEND \u2014 EVENT & TRIGGER PIPELINE (Python)"]
+        K["Event Ingestion API (FastAPI)"] --> L["Event Store (Postgres + Redis Stream)"]
+        L --> M["Trigger Evaluation Engine"]
+        M --> N{"Trigger type?"}
+        N -->|"In-session"| O{"Passes frequency cap & precedence rules?"}
+        N -->|"Deferred"| P["Write to Pending-Engagement Queue"]
+        N -->|"Handoff event\n(from Conversation Orchestrator)"| HM["Human Handoff Manager\n(admin-configured routing rules)"]
+        O -->|"No, suppressed"| Z1["No engagement raised"]
+        O -->|"Yes"| Q["Fire live engagement"]
+        P --> R["Celery beat: expiry sweep"]
+        R --> S{"Customer logs in again before expiry?"}
+        S -->|"Yes, at next login"| O
+        S -->|"No"| Z2["Queue entry expires, discarded"]
+        HM --> Z3["Routed to human agent queue\nwith full context"]
+    end
+
+    subgraph CO["CONVERSATION ORCHESTRATOR"]
+        Q --> T["Assemble context: trigger + customer profile + booking history"]
+        T --> U["Apply personalisation: Customer Type, Market/Region, language"]
+        U --> V["Build prompt, send to LLM provider"]
+        V --> W{"AI service available & confident?"}
+        W -->|"No / low confidence / timeout"| X["Fallback: templated contextual message"]
+        W -->|"Yes"| Y["LLM generates draft response"]
+        Y --> AA{"Response references price, rate or availability?"}
+        AA -->|"Yes"| AB["Verify claim against live booking API"]
+        AB --> AC["Send verified response"]
+        AA -->|"No"| AC
+        X --> AD["Message delivered via Chatbot UI (HS-103)"]
+        AC --> AD
+    end
+
+    subgraph CR["CUSTOMER RESPONSE"]
+        AD --> AE{"Customer responds?"}
+        AE -->|"No response"| AF["Logged: no engagement"]
+        AE -->|"Responds, asks follow-up"| AG["Multi-turn conversation (context retained)"]
+        AG --> AH{"Bot resolves the query / hesitation?"}
+        AH -->|"Yes"| AI["Deep link back to prior search / booking step"]
+        AI --> AJ["Customer completes booking"]
+        AH -->|"No / bot can't help"| AK["Bot raises handoff event\n(sent to Trigger Evaluation Engine)"]
+    end
+
+    AK -.->|"handoff event"| M
+
+    subgraph RP["ADMIN, AUDIT & REPORTING"]
+        AJ --> AL["Conversion attributed to bot intervention"]
+        Z3 --> AM["Handoff logged"]
+        AF --> AN["Engagement rate updated"]
+        AL --> AO["Reporting API / Admin dashboard"]
+        AM --> AO
+        AN --> AO
+        AP["Admin console: create/enable/disable triggers, set wait period + frequency cap"] --> M
+        AQ["Audit log: every config change"] --> AO
+    end
+
+    C --> K
+    D --> K
+    E --> K
+    F --> K
+    G --> K
+    H --> K
+    I --> K
+    J --> K
+
+    classDef customer fill:#DCE6F1,stroke:#2E74B5,color:#1F3864;
+    classDef backend fill:#F2F6FA,stroke:#1F3864,color:#1F3864;
+    classDef decision fill:#FFF2CC,stroke:#BF8F00,color:#3F3000;
+    classDef terminal fill:#E2EFDA,stroke:#548235,color:#375623;
+    classDef stop fill:#FBE4E4,stroke:#C00000,color:#7B0000;
+
+    class A,C,D,E,F,G,H,I,J,AD,AJ customer;
+    class K,L,M,P,R,Q,T,U,V,Y,AB,AC,X,AG,AI,AK,AL,AM,AN,AO,AP,AQ,HM,Z3 backend;
+    class B,N,O,S,W,AA,AE,AH decision;
+    class Z1,Z2,AF stop;

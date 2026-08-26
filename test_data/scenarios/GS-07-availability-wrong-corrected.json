@@ -1,0 +1,94 @@
+{
+  "scenario_id": "GS-07-availability-wrong-corrected",
+  "description": "LLM claims the car is available but the world says 0 -> claim corrected.",
+  "seed": 107,
+  "customer": {
+    "customer_id": "hfb-cust-gs07",
+    "customer_type": "SME",
+    "region": "UK",
+    "language": "en",
+    "segment": "frequent",
+    "created_at": "2025-01-01T00:00:00Z",
+    "consent": {
+      "marketing": true,
+      "analytics": true
+    },
+    "negotiated_rate_plan": "SME-STD-2026",
+    "last_booking_at": null
+  },
+  "trigger": {
+    "trigger_id": "booking_abandoned_v1",
+    "enabled": true,
+    "match": {
+      "signal_type": "booking_abandoned",
+      "conditions": []
+    },
+    "type": "in_session",
+    "deferred": null,
+    "frequency_cap": {
+      "per": "P7D",
+      "max": 1
+    },
+    "precedence": 100,
+    "message_template_ref": "tmpl_booking_abandoned"
+  },
+  "events": [
+    {
+      "event_id": "20d6d85a-4bf5-47ac-bbbe-6e1df94b3af4",
+      "customer_id": "hfb-cust-gs07",
+      "session_id": "sess-gs07-00",
+      "signal_type": "booking_abandoned",
+      "occurred_at": "2026-09-01T10:05:00Z",
+      "source": "booking_widget",
+      "context": {
+        "pickup": "LHR",
+        "dropoff": "LHR",
+        "pickup_at": "2026-09-01T10:00:00Z",
+        "return_at": "2026-09-04T10:00:00Z",
+        "vehicle_class": "CCAR",
+        "step": "review",
+        "error_code": null,
+        "dwell_ms": null
+      },
+      "consent": {
+        "marketing": true,
+        "analytics": true
+      },
+      "schema_version": "1.0.0"
+    }
+  ],
+  "llm_response": {
+    "text": "That vehicle is available now at your pickup location \u2014 shall I reserve it?",
+    "claims": [
+      {
+        "kind": "availability",
+        "pickup": "LHR",
+        "dropoff": "LHR",
+        "pickup_at": "2026-09-01T10:00:00Z",
+        "return_at": "2026-09-04T10:00:00Z",
+        "vehicle_class": "CCAR",
+        "quoted_price": null,
+        "quoted_available": true,
+        "text_token": "available now"
+      }
+    ],
+    "confidence": 0.83,
+    "finish_reason": "stop"
+  },
+  "llm_timeout": false,
+  "replies": [
+    "hmm not sure"
+  ],
+  "resolves": false,
+  "booking_api_failures": [],
+  "prior_engagements": [],
+  "expected": {
+    "fired": true,
+    "suppressed_reason": null,
+    "message_kind": "corrected",
+    "terminal_state": "handed_off",
+    "delivered_excludes": [
+      "available now"
+    ]
+  }
+}

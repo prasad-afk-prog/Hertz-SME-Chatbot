@@ -1,0 +1,21 @@
+[project]
+name = "hfb-test-data"
+version = "0.1.0"
+description = "Synthetic test-dataset generator for the HFB Proactive AI Chatbot"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.5",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    # optional enhancements referenced in POA/16 §8 (not required to run the scaffold):
+    # "faker", "numpy", "hypothesis", "respx", "testcontainers", "polyfactory",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

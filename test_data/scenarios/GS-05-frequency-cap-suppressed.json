@@ -1,0 +1,75 @@
+{
+  "scenario_id": "GS-05-frequency-cap-suppressed",
+  "description": "Customer engaged 1 day ago; cap is 1 per 7 days -> this match is suppressed.",
+  "seed": 105,
+  "customer": {
+    "customer_id": "hfb-cust-gs05",
+    "customer_type": "SME",
+    "region": "UK",
+    "language": "en",
+    "segment": "frequent",
+    "created_at": "2025-01-01T00:00:00Z",
+    "consent": {
+      "marketing": true,
+      "analytics": true
+    },
+    "negotiated_rate_plan": "SME-STD-2026",
+    "last_booking_at": null
+  },
+  "trigger": {
+    "trigger_id": "search_no_convert_v1",
+    "enabled": true,
+    "match": {
+      "signal_type": "search_no_convert",
+      "conditions": []
+    },
+    "type": "in_session",
+    "deferred": null,
+    "frequency_cap": {
+      "per": "P7D",
+      "max": 1
+    },
+    "precedence": 100,
+    "message_template_ref": "tmpl_search_no_convert"
+  },
+  "events": [
+    {
+      "event_id": "ca605946-027f-4a34-9698-f9f8a5144f62",
+      "customer_id": "hfb-cust-gs05",
+      "session_id": "sess-gs05-00",
+      "signal_type": "search_no_convert",
+      "occurred_at": "2026-09-01T10:05:00Z",
+      "source": "booking_widget",
+      "context": {
+        "pickup": "MAN",
+        "dropoff": "MAN",
+        "pickup_at": "2026-09-01T10:00:00Z",
+        "return_at": "2026-09-04T10:00:00Z",
+        "vehicle_class": "ECAR",
+        "step": null,
+        "error_code": null,
+        "dwell_ms": null
+      },
+      "consent": {
+        "marketing": true,
+        "analytics": true
+      },
+      "schema_version": "1.0.0"
+    }
+  ],
+  "llm_response": null,
+  "llm_timeout": false,
+  "replies": [],
+  "resolves": null,
+  "booking_api_failures": [],
+  "prior_engagements": [
+    "2026-08-31T10:05:00Z"
+  ],
+  "expected": {
+    "fired": false,
+    "suppressed_reason": "frequency_cap",
+    "message_kind": null,
+    "terminal_state": null,
+    "delivered_excludes": []
+  }
+}

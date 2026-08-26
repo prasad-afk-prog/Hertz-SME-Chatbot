@@ -1,0 +1,44 @@
+[
+  {
+    "location_id": "LHR",
+    "name": "London Heathrow",
+    "country": "GB",
+    "region": "UK",
+    "timezone": "Europe/London"
+  },
+  {
+    "location_id": "MAN",
+    "name": "Manchester Airport",
+    "country": "GB",
+    "region": "UK",
+    "timezone": "Europe/London"
+  },
+  {
+    "location_id": "EDI",
+    "name": "Edinburgh Airport",
+    "country": "GB",
+    "region": "UK",
+    "timezone": "Europe/London"
+  },
+  {
+    "location_id": "FRA",
+    "name": "Frankfurt Airport",
+    "country": "DE",
+    "region": "DE",
+    "timezone": "Europe/Berlin"
+  },
+  {
+    "location_id": "CDG",
+    "name": "Paris Charles de Gaulle",
+    "country": "FR",
+    "region": "FR",
+    "timezone": "Europe/Paris"
+  },
+  {
+    "location_id": "MAD",
+    "name": "Madrid Barajas",
+    "country": "ES",
+    "region": "ES",
+    "timezone": "Europe/Madrid"
+  }
+]

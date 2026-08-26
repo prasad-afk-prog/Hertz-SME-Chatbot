@@ -1,0 +1,26 @@
+- rule_id: de_corporate_v1
+  match:
+    language: de
+    customer_type: corporate
+  route:
+    queue: de-corporate
+    skill: billing
+    priority: high
+  sla:
+    first_response: PT5M
+  fallback_queue: general-de
+- rule_id: en_default_v1
+  match:
+    language: en
+  route:
+    queue: en-general
+    priority: normal
+  sla: null
+  fallback_queue: general
+- rule_id: catch_all_v1
+  match: {}
+  route:
+    queue: general
+    priority: normal
+  sla: null
+  fallback_queue: general

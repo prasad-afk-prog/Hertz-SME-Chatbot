@@ -1,0 +1,100 @@
+- trigger_id: search_no_convert_v1
+  enabled: true
+  match:
+    signal_type: search_no_convert
+    conditions: []
+  type: in_session
+  deferred: null
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 100
+  message_template_ref: tmpl_search_no_convert
+- trigger_id: rate_view_no_progress_v1
+  enabled: true
+  match:
+    signal_type: rate_view_no_progress
+    conditions: []
+  type: in_session
+  deferred: null
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 140
+  message_template_ref: tmpl_rate_view_no_progress
+- trigger_id: booking_abandoned_v1
+  enabled: true
+  match:
+    signal_type: booking_abandoned
+    conditions: []
+  type: in_session
+  deferred: null
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 200
+  message_template_ref: tmpl_booking_abandoned
+- trigger_id: error_hit_v1
+  enabled: true
+  match:
+    signal_type: error_hit
+    conditions: []
+  type: in_session
+  deferred: null
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 180
+  message_template_ref: tmpl_error_hit
+- trigger_id: extended_dwell_v1
+  enabled: true
+  match:
+    signal_type: extended_dwell
+    conditions: []
+  type: in_session
+  deferred: null
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 120
+  message_template_ref: tmpl_extended_dwell
+- trigger_id: session_ended_no_booking_v1
+  enabled: true
+  match:
+    signal_type: session_ended_no_booking
+    conditions: []
+  type: in_session
+  deferred: null
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 90
+  message_template_ref: tmpl_session_ended_no_booking
+- trigger_id: repeated_search_v1
+  enabled: true
+  match:
+    signal_type: repeated_search
+    conditions: []
+  type: deferred
+  deferred:
+    wait_period: PT0S
+    expiry: P3D
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 70
+  message_template_ref: tmpl_repeated_search
+- trigger_id: dormant_v1
+  enabled: true
+  match:
+    signal_type: dormant
+    conditions: []
+  type: deferred
+  deferred:
+    wait_period: PT0S
+    expiry: P3D
+  frequency_cap:
+    per: P7D
+    max: 1
+  precedence: 50
+  message_template_ref: tmpl_dormant

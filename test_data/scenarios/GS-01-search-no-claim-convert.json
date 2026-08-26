@@ -1,0 +1,80 @@
+{
+  "scenario_id": "GS-01-search-no-claim-convert",
+  "description": "In-session fire, plain LLM reply (no factual claim), customer resolves and books.",
+  "seed": 101,
+  "customer": {
+    "customer_id": "hfb-cust-gs01",
+    "customer_type": "SME",
+    "region": "UK",
+    "language": "en",
+    "segment": "frequent",
+    "created_at": "2025-01-01T00:00:00Z",
+    "consent": {
+      "marketing": true,
+      "analytics": true
+    },
+    "negotiated_rate_plan": "SME-STD-2026",
+    "last_booking_at": null
+  },
+  "trigger": {
+    "trigger_id": "search_no_convert_v1",
+    "enabled": true,
+    "match": {
+      "signal_type": "search_no_convert",
+      "conditions": []
+    },
+    "type": "in_session",
+    "deferred": null,
+    "frequency_cap": {
+      "per": "P7D",
+      "max": 1
+    },
+    "precedence": 100,
+    "message_template_ref": "tmpl_search_no_convert"
+  },
+  "events": [
+    {
+      "event_id": "9743675d-bc03-4fc5-9725-d7839bfad33c",
+      "customer_id": "hfb-cust-gs01",
+      "session_id": "sess-gs01-00",
+      "signal_type": "search_no_convert",
+      "occurred_at": "2026-09-01T10:05:00Z",
+      "source": "booking_widget",
+      "context": {
+        "pickup": "LHR",
+        "dropoff": "LHR",
+        "pickup_at": "2026-09-01T10:00:00Z",
+        "return_at": "2026-09-04T10:00:00Z",
+        "vehicle_class": "ICAR",
+        "step": null,
+        "error_code": null,
+        "dwell_ms": null
+      },
+      "consent": {
+        "marketing": true,
+        "analytics": true
+      },
+      "schema_version": "1.0.0"
+    }
+  ],
+  "llm_response": {
+    "text": "Looks like you were comparing options at London Heathrow \u2014 want a hand narrowing it down?",
+    "claims": [],
+    "confidence": 0.9,
+    "finish_reason": "stop"
+  },
+  "llm_timeout": false,
+  "replies": [
+    "yes please"
+  ],
+  "resolves": true,
+  "booking_api_failures": [],
+  "prior_engagements": [],
+  "expected": {
+    "fired": true,
+    "suppressed_reason": null,
+    "message_kind": "llm",
+    "terminal_state": "converted",
+    "delivered_excludes": []
+  }
+}

@@ -1,0 +1,6 @@
+fired: true
+suppressed_reason: null
+message_kind: corrected
+terminal_state: handed_off
+delivered_excludes:
+- available now

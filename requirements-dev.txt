@@ -1,0 +1,11 @@
+-r requirements.txt
+pytest>=8.0
+
+# Optional enhancements (POA/16 §8) — layer in as the real project grows.
+# Not required to run this scaffold, which is stdlib + pydantic + pyyaml only.
+# faker           # realistic names/locales (seeded)
+# numpy           # heavier distribution sampling
+# hypothesis      # property-based / adversarial generation
+# respx           # httpx mocking for real HTTP clients
+# testcontainers  # disposable Postgres + Redis for integration tests
+# polyfactory     # pydantic-native model factories

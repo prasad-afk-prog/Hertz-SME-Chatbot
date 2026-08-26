@@ -1,0 +1,5 @@
+fired: false
+suppressed_reason: frequency_cap
+message_kind: null
+terminal_state: null
+delivered_excludes: []

@@ -1,0 +1,27 @@
+[
+  {
+    "code": "ECAR",
+    "label": "Economy",
+    "example_model": "VW Polo"
+  },
+  {
+    "code": "CCAR",
+    "label": "Compact",
+    "example_model": "Ford Focus"
+  },
+  {
+    "code": "ICAR",
+    "label": "Intermediate",
+    "example_model": "VW Golf"
+  },
+  {
+    "code": "FCAR",
+    "label": "Fullsize",
+    "example_model": "Skoda Octavia"
+  },
+  {
+    "code": "SUV",
+    "label": "SUV",
+    "example_model": "Nissan Qashqai"
+  }
+]
