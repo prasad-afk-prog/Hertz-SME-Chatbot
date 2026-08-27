@@ -1,0 +1,2 @@
+{"rate_plan_id": "SME-STD-2026", "name": "SME Standard 2026", "discount_pct": "0.10", "net_daily_rate": {}, "included_protections": [], "included_extras": ["ADD_DRIVER"]}
+{"rate_plan_id": "corporate-STD-2026", "name": "Corporate Standard 2026", "discount_pct": "0.15", "net_daily_rate": {}, "included_protections": ["CDW", "TP"], "included_extras": ["ADD_DRIVER", "GPS"]}

@@ -79,6 +79,7 @@ Each module has its own POA file in this folder. Build order / dependency is ind
 | `14_POA_Audit_Reporting_Analytics.md` | Audit, Reporting & Analytics | AL–AO | 03, 13 |
 | `15_POA_Platform_Infra_Security_Observability.md` | Platform: Infra, Security & Observability | cross-cutting | — |
 | `16_Test_Dataset_Strategy.md` | Synthetic test-dataset strategy (how to test the whole system with dummy data) | all modules | 02, 10 contracts |
+| `17_Mock_Dataset_Audit.md` | Mock-dataset audit vs the Hertz SME use case + v0.2 remediation (business domain, catalogues, lifecycle) | all modules | 16, models |
 
 ## 5. Recommended build sequence (phased)
 

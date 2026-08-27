@@ -14,7 +14,9 @@
       "analytics": true
     },
     "negotiated_rate_plan": "corporate-STD-2026",
-    "last_booking_at": null
+    "last_booking_at": null,
+    "company_id": null,
+    "rate_plan_id": null
   },
   "trigger": {
     "trigger_id": "extended_dwell_v1",
@@ -34,7 +36,7 @@
   },
   "events": [
     {
-      "event_id": "c4155ae4-0c15-4663-8b08-59795c7e9d19",
+      "event_id": "afb40671-fa3a-49d9-a86f-e3f1107e9b17",
       "customer_id": "hfb-cust-gs06",
       "session_id": "sess-gs06-00",
       "signal_type": "extended_dwell",

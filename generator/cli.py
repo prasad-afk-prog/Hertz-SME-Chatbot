@@ -29,9 +29,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"seed={args.seed} tier={args.tier}")
         print(f"  world: {len(ds.locations)} locations x {len(ds.vehicle_classes)} classes, "
               f"{len(ds.rate_cards)} rate-cards")
+        print(f"  catalogues: {len(ds.protection_products)} protection, {len(ds.extras)} extras, "
+              f"{len(ds.policies)} policies, {len(ds.rate_plans)} rate-plans")
         print(f"  golden scenarios: {len(ds.scenarios)}")
         if args.tier in ("all", "volume"):
-            print(f"  volume: {len(ds.customers)} customers, {len(ds.events)} events")
+            print(f"  volume: {len(ds.customers)} customers, {len(ds.companies)} companies, "
+                  f"{len(ds.bookings)} bookings, {len(ds.invoices)} invoices, {len(ds.events)} events")
         print(f"  wrote {len(paths)} files under {args.out}/")
     return 0
 

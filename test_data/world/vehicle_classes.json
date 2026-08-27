@@ -2,26 +2,99 @@
   {
     "code": "ECAR",
     "label": "Economy",
-    "example_model": "VW Polo"
+    "example_model": "VW Polo",
+    "category": "car",
+    "seats": 5,
+    "doors": 3,
+    "transmission": "manual",
+    "fuel_type": "petrol",
+    "luggage": 1,
+    "deposit": "150.00",
+    "min_driver_age": 21,
+    "mileage_policy": "unlimited"
   },
   {
     "code": "CCAR",
     "label": "Compact",
-    "example_model": "Ford Focus"
+    "example_model": "Ford Focus",
+    "category": "car",
+    "seats": 5,
+    "doors": 5,
+    "transmission": "manual",
+    "fuel_type": "petrol",
+    "luggage": 2,
+    "deposit": "175.00",
+    "min_driver_age": 21,
+    "mileage_policy": "unlimited"
   },
   {
     "code": "ICAR",
     "label": "Intermediate",
-    "example_model": "VW Golf"
+    "example_model": "VW Golf",
+    "category": "car",
+    "seats": 5,
+    "doors": 5,
+    "transmission": "manual",
+    "fuel_type": "diesel",
+    "luggage": 2,
+    "deposit": "200.00",
+    "min_driver_age": 23,
+    "mileage_policy": "unlimited"
   },
   {
     "code": "FCAR",
     "label": "Fullsize",
-    "example_model": "Skoda Octavia"
+    "example_model": "Skoda Octavia",
+    "category": "car",
+    "seats": 5,
+    "doors": 5,
+    "transmission": "automatic",
+    "fuel_type": "diesel",
+    "luggage": 3,
+    "deposit": "250.00",
+    "min_driver_age": 23,
+    "mileage_policy": "unlimited"
   },
   {
     "code": "SUV",
     "label": "SUV",
-    "example_model": "Nissan Qashqai"
+    "example_model": "Nissan Qashqai",
+    "category": "car",
+    "seats": 5,
+    "doors": 5,
+    "transmission": "automatic",
+    "fuel_type": "diesel",
+    "luggage": 3,
+    "deposit": "300.00",
+    "min_driver_age": 25,
+    "mileage_policy": "unlimited"
+  },
+  {
+    "code": "PVAN",
+    "label": "Panel Van",
+    "example_model": "Ford Transit Custom",
+    "category": "van",
+    "seats": 3,
+    "doors": 4,
+    "transmission": "manual",
+    "fuel_type": "diesel",
+    "luggage": 0,
+    "deposit": "400.00",
+    "min_driver_age": 25,
+    "mileage_policy": "limited-250mi/day"
+  },
+  {
+    "code": "LVAN",
+    "label": "Luton Van",
+    "example_model": "Ford Transit Luton",
+    "category": "van",
+    "seats": 3,
+    "doors": 3,
+    "transmission": "manual",
+    "fuel_type": "diesel",
+    "luggage": 0,
+    "deposit": "500.00",
+    "min_driver_age": 25,
+    "mileage_policy": "limited-250mi/day"
   }
 ]

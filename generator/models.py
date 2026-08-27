@@ -5,6 +5,11 @@ these same models, so any data the generator emits is schema-valid by
 construction and contract tests pass for free.
 
 Money is modelled with Decimal (never float) to match a real booking system.
+
+v0.2 — extended from the pure proactive-signal contract to a full SME
+business-rental domain (companies, rate plans, booking lifecycle, extras,
+protection, policies, invoices). Additions to the original models are optional
+with defaults, so the golden-scenario harness keeps validating unchanged.
 """
 from __future__ import annotations
 
@@ -87,6 +92,51 @@ class VerifyStatus(str, Enum):
     unverifiable = "unverifiable"
 
 
+# ---- business-domain enums (v0.2) ----------------------------------------- #
+class Transmission(str, Enum):
+    manual = "manual"
+    automatic = "automatic"
+
+
+class FuelType(str, Enum):
+    petrol = "petrol"
+    diesel = "diesel"
+    hybrid = "hybrid"
+    electric = "electric"
+
+
+class VehicleCategory(str, Enum):
+    car = "car"
+    van = "van"
+
+
+class LocationType(str, Enum):
+    airport = "airport"
+    city = "city"
+
+
+class BookingStatus(str, Enum):
+    upcoming = "upcoming"
+    active = "active"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
+class PricingUnit(str, Enum):
+    per_day = "per_day"
+    per_rental = "per_rental"
+
+
+class PolicyTopic(str, Enum):
+    mileage = "mileage"
+    fuel = "fuel"
+    deposit = "deposit"
+    cancellation = "cancellation"
+    driver_age = "driver_age"
+    cross_border = "cross_border"
+    late_return = "late_return"
+
+
 # --------------------------------------------------------------------------- #
 # Reference world
 # --------------------------------------------------------------------------- #
@@ -97,6 +147,11 @@ class Location(BaseModel):
     country: str
     region: str
     timezone: str
+    # v0.2 enrichment
+    type: LocationType = LocationType.airport
+    address: str | None = None
+    opening_hours: str | None = None
+    currency: str = "GBP"
 
 
 class VehicleClass(BaseModel):
@@ -104,6 +159,16 @@ class VehicleClass(BaseModel):
     code: str
     label: str
     example_model: str
+    # v0.2 enrichment
+    category: VehicleCategory = VehicleCategory.car
+    seats: int | None = None
+    doors: int | None = None
+    transmission: Transmission | None = None
+    fuel_type: FuelType | None = None
+    luggage: int | None = None           # large bags
+    deposit: Decimal | None = None       # security deposit / pre-auth
+    min_driver_age: int | None = None
+    mileage_policy: str | None = None    # e.g. "unlimited" | "limited-250mi/day"
 
 
 class RateCard(BaseModel):
@@ -113,6 +178,11 @@ class RateCard(BaseModel):
     date: date
     daily_rate: Decimal
     currency: str = "GBP"
+    # v0.2 enrichment
+    weekly_rate: Decimal | None = None
+    deposit: Decimal | None = None
+    tax_rate: Decimal = Decimal("0.20")   # VAT
+    one_way_fee: Decimal | None = None
 
 
 class Availability(BaseModel):
@@ -141,8 +211,25 @@ class Customer(BaseModel):
     segment: Segment
     created_at: datetime
     consent: Consent = Field(default_factory=Consent)
-    negotiated_rate_plan: str | None = None
+    negotiated_rate_plan: str | None = None      # kept: plan id (now resolvable, see RatePlan)
     last_booking_at: datetime | None = None
+    # v0.2 — real links into the business layer
+    company_id: str | None = None
+    rate_plan_id: str | None = None
+
+
+class BookingDriver(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str | None = None
+    age: int
+    licence_held_years: int
+
+
+class Cancellation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    fee: Decimal
+    deadline: datetime          # free cancellation up to this instant
+    policy: str
 
 
 class Booking(BaseModel):
@@ -155,7 +242,110 @@ class Booking(BaseModel):
     pickup_at: datetime
     return_at: datetime
     total: Decimal
-    status: str = "completed"
+    status: BookingStatus = BookingStatus.completed
+    # v0.2 — a booking you can actually query and manage
+    company_id: str | None = None
+    reference_no: str | None = None
+    currency: str = "GBP"
+    extras: list[str] = Field(default_factory=list)         # Extra.code refs
+    protection: list[str] = Field(default_factory=list)     # ProtectionProduct.code refs
+    driver: BookingDriver | None = None
+    deposit: Decimal | None = None
+    tax: Decimal | None = None                              # VAT component of total
+    cancellation: Cancellation | None = None
+
+
+# --------------------------------------------------------------------------- #
+# Business layer (v0.2): companies, rate plans, invoices
+# --------------------------------------------------------------------------- #
+class Contact(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str
+    email: str
+    phone: str
+
+
+class Company(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    company_id: str
+    name: str
+    customer_type: CustomerType = CustomerType.SME
+    account_no: str
+    cost_centres: list[str] = Field(default_factory=list)
+    credit_terms: str = "30 days"
+    rate_plan_id: str | None = None
+    primary_contact: Contact
+    loyalty_tier: str | None = None
+
+
+class RatePlan(BaseModel):
+    """A negotiated business plan. `discount_pct` applies to standard rate cards;
+    `net_daily_rate` (class -> price) overrides with a fixed net rate when set."""
+    model_config = ConfigDict(extra="forbid")
+    rate_plan_id: str
+    name: str
+    discount_pct: Decimal | None = None
+    net_daily_rate: dict[str, Decimal] = Field(default_factory=dict)
+    included_protections: list[str] = Field(default_factory=list)
+    included_extras: list[str] = Field(default_factory=list)
+
+
+class InvoiceLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    booking_id: str | None = None
+    description: str
+    net: Decimal
+    vat: Decimal
+    gross: Decimal
+
+
+class Invoice(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    invoice_id: str
+    company_id: str
+    period: str                 # e.g. "2026-Q2"
+    line_items: list[InvoiceLine] = Field(default_factory=list)
+    net: Decimal
+    vat: Decimal
+    gross: Decimal
+    currency: str = "GBP"
+    po_number: str | None = None
+    status: str = "issued"
+
+
+# --------------------------------------------------------------------------- #
+# Catalogues (v0.2): extras, protection, policies
+# --------------------------------------------------------------------------- #
+class ProtectionProduct(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    product_id: str
+    code: str
+    name: str
+    daily_price: Decimal
+    excess_before: Decimal | None = None    # liability without the product
+    excess_after: Decimal | None = None     # liability with the product
+    included_by_default: bool = False
+    description: str | None = None
+
+
+class Extra(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    extra_id: str
+    code: str
+    name: str
+    pricing_unit: PricingUnit = PricingUnit.per_day
+    price: Decimal
+    max_qty: int = 1
+    description: str | None = None
+
+
+class Policy(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    policy_id: str
+    topic: PolicyTopic
+    applies_to: str = "all"       # "all" | vehicle category | region
+    summary: str
+    detail: str | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -327,3 +517,10 @@ class Dataset(BaseModel):
     triggers: list[TriggerConfig]
     routing_rules: list[RoutingRule]
     scenarios: list[Scenario] = Field(default_factory=list)
+    # v0.2 — business layer + catalogues
+    companies: list[Company] = Field(default_factory=list)
+    rate_plans: list[RatePlan] = Field(default_factory=list)
+    invoices: list[Invoice] = Field(default_factory=list)
+    protection_products: list[ProtectionProduct] = Field(default_factory=list)
+    extras: list[Extra] = Field(default_factory=list)
+    policies: list[Policy] = Field(default_factory=list)

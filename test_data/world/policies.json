@@ -1,0 +1,51 @@
+[
+  {
+    "policy_id": "pol-mileage-uk",
+    "topic": "mileage",
+    "applies_to": "UK",
+    "summary": "Unlimited mileage on standard UK car rentals.",
+    "detail": "Vans and certain premium classes may carry a daily mileage cap; cross-border rentals are limited \u2014 see the cross-border policy."
+  },
+  {
+    "policy_id": "pol-fuel",
+    "topic": "fuel",
+    "applies_to": "all",
+    "summary": "Fuel policy is full-to-full: collect and return with a full tank.",
+    "detail": "Alternatively pre-pay with the Fuel Purchase Option (FPO) and return empty. A refuelling charge applies if returned below the pickup level."
+  },
+  {
+    "policy_id": "pol-deposit",
+    "topic": "deposit",
+    "applies_to": "all",
+    "summary": "A refundable security deposit is pre-authorised on a credit card at pickup.",
+    "detail": "The amount varies by vehicle class (from \u00a3150 for economy cars up to \u00a3500 for vans) and is released after the vehicle is returned undamaged."
+  },
+  {
+    "policy_id": "pol-cancel",
+    "topic": "cancellation",
+    "applies_to": "all",
+    "summary": "Free cancellation up to 48 hours before pickup.",
+    "detail": "Cancellations inside 48 hours are charged one rental day. Prepaid rates may be non-refundable \u2014 check the rate conditions at booking."
+  },
+  {
+    "policy_id": "pol-age",
+    "topic": "driver_age",
+    "applies_to": "all",
+    "summary": "Minimum driver age is 21 for cars (25 for vans and premium classes).",
+    "detail": "Drivers under 25 may incur a young-driver surcharge and some classes are restricted. A full licence held for at least one year is required."
+  },
+  {
+    "policy_id": "pol-crossborder",
+    "topic": "cross_border",
+    "applies_to": "all",
+    "summary": "Cross-border and one-way travel must be declared and may need prior approval.",
+    "detail": "Some countries are excluded; a one-way fee and additional cover may apply."
+  },
+  {
+    "policy_id": "pol-late",
+    "topic": "late_return",
+    "applies_to": "all",
+    "summary": "A 29-minute grace period applies; beyond it a further rental day may be charged.",
+    "detail": "Please contact the branch if you expect to return late to avoid extra charges."
+  }
+]

@@ -10,11 +10,20 @@ reply scripts — all derived from **one seeded world** so everything stays
 internally consistent. It ships with a pytest suite that proves the dataset
 drives the correct outcomes **before the real M02–M14 services exist**.
 
+> **v0.2 — SME business domain.** The dataset now also backs a *conversational*
+> SME rental assistant, not just the proactive/verification pipeline. It adds
+> business **companies**, negotiated **rate plans**, an **invoice** roll-up, a
+> full booking **lifecycle** (upcoming/active/completed/cancelled), **van/LCV**
+> classes, enriched vehicle & location attributes, per-location currency, and
+> queryable **protection**, **extras** and **policy** catalogues. See
+> [`POA/17_Mock_Dataset_Audit.md`](POA/17_Mock_Dataset_Audit.md) for the audit
+> that drove these additions.
+
 ## Quick start
 
 ```bash
 pip install -r requirements-dev.txt          # pydantic, pyyaml, pytest
-python -m pytest                              # 33 tests, all green
+python -m pytest                              # 43 tests, all green
 python -m generator build --seed 42 --tier golden --out test_data
 python -m generator build --seed 42 --tier volume --customers 1000 --out test_data
 ```
@@ -24,8 +33,10 @@ python -m generator build --seed 42 --tier volume --customers 1000 --out test_da
 ```
 generator/        the generator (pure Python + pydantic)
   models.py       Pydantic CONTRACT models — single source of truth (share with services)
-  world.py        WorldBuilder — seeded reference world (fleet/rates/availability)
-  customers.py    CustomerFactory — customers + booking history (+ dormant cohort)
+  world.py        WorldBuilder — seeded reference world (fleet/rates/availability/currency)
+  catalogues.py   static reference: protection products, extras, policies, rate plans
+  business.py     CompanyFactory + invoice roll-up (SME/corporate accounts)
+  customers.py    CustomerFactory — customers + booking lifecycle (+ company/plan links)
   patterns.py     the 8 signal-pattern generators (flow nodes C–J)
   sessions.py     SessionSimulator — Tier-B volume driver
   scenarios.py    ScenarioComposer — 7 golden scenarios w/ pinned expectations
@@ -38,7 +49,19 @@ mocks/            external systems, all reading the SAME world
   llm_provider.py deterministic LLM fixtures + timeout mode (M09)
   hs103.py        delivery + inbound replies (M11)
   support_queue.py handoff dispatch (M07)
-tests/            pytest suite (contracts, world, patterns, golden, verification, invariants)
+tests/            pytest suite (contracts, world, patterns, golden, verification, invariants, business)
+```
+
+### Generated files (`test_data/`)
+
+```
+world/    locations · vehicle_classes · rate_cards · availability
+          protection_products · extras · policies            (v0.2 catalogues)
+master/   customers · bookings · rate_plans                  (rate_plans always)
+          companies · invoices                               (v0.2 business layer, volume tier)
+config/   triggers · routing_rules
+scenarios/ + expected/   7 golden scenarios and their pinned outcomes
+events/volume/           bulk behavioural events
 ```
 
 ## The one idea that makes it work
@@ -66,6 +89,7 @@ the mock returns the world's true £52.21, and the verifier must correct/strip i
 | `test_claim_verification.py` | M10: correct passes, wrong corrected, unverifiable stripped |
 | `test_golden_scenarios.py` | every branch (W/AA/O/AE/AH) drives its pinned expected outcome |
 | `test_invariants.py` | frequency cap never exceeded over volume; **no unverified claim ever delivered** |
+| `test_business_entities.py` | v0.2 companies/plans/invoices/catalogues are schema-valid & referentially consistent; booking lifecycle exercised; totals derived not flat |
 
 ## Extending
 
