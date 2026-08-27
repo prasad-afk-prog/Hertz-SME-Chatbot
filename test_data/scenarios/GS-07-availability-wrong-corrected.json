@@ -14,7 +14,9 @@
       "analytics": true
     },
     "negotiated_rate_plan": "SME-STD-2026",
-    "last_booking_at": null
+    "last_booking_at": null,
+    "company_id": null,
+    "rate_plan_id": null
   },
   "trigger": {
     "trigger_id": "booking_abandoned_v1",
@@ -34,7 +36,7 @@
   },
   "events": [
     {
-      "event_id": "20d6d85a-4bf5-47ac-bbbe-6e1df94b3af4",
+      "event_id": "7e46360c-6a80-4616-910c-2b66df3422ff",
       "customer_id": "hfb-cust-gs07",
       "session_id": "sess-gs07-00",
       "signal_type": "booking_abandoned",

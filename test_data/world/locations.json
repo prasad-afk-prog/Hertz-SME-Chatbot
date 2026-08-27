@@ -4,41 +4,65 @@
     "name": "London Heathrow",
     "country": "GB",
     "region": "UK",
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "type": "airport",
+    "address": "Northern Perimeter Rd, Hounslow TW6 2QD",
+    "opening_hours": "Mon-Sun 06:00-23:00",
+    "currency": "GBP"
   },
   {
     "location_id": "MAN",
     "name": "Manchester Airport",
     "country": "GB",
     "region": "UK",
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "type": "airport",
+    "address": "Terminal 1, Manchester M90 1QX",
+    "opening_hours": "Mon-Sun 07:00-23:00",
+    "currency": "GBP"
   },
   {
     "location_id": "EDI",
     "name": "Edinburgh Airport",
     "country": "GB",
     "region": "UK",
-    "timezone": "Europe/London"
+    "timezone": "Europe/London",
+    "type": "airport",
+    "address": "Edinburgh Airport, Ingliston EH12 9DN",
+    "opening_hours": "Mon-Sun 07:00-23:00",
+    "currency": "GBP"
   },
   {
     "location_id": "FRA",
     "name": "Frankfurt Airport",
     "country": "DE",
     "region": "DE",
-    "timezone": "Europe/Berlin"
+    "timezone": "Europe/Berlin",
+    "type": "airport",
+    "address": "60547 Frankfurt am Main",
+    "opening_hours": "Mon-Sun 06:00-23:00",
+    "currency": "EUR"
   },
   {
     "location_id": "CDG",
     "name": "Paris Charles de Gaulle",
     "country": "FR",
     "region": "FR",
-    "timezone": "Europe/Paris"
+    "timezone": "Europe/Paris",
+    "type": "airport",
+    "address": "95700 Roissy-en-France",
+    "opening_hours": "Mon-Sun 06:00-23:30",
+    "currency": "EUR"
   },
   {
     "location_id": "MAD",
     "name": "Madrid Barajas",
     "country": "ES",
     "region": "ES",
-    "timezone": "Europe/Madrid"
+    "timezone": "Europe/Madrid",
+    "type": "airport",
+    "address": "Av. de la Hispanidad, 28042 Madrid",
+    "opening_hours": "Mon-Sun 07:00-23:00",
+    "currency": "EUR"
   }
 ]

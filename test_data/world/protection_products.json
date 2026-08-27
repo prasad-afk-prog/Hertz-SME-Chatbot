@@ -1,0 +1,52 @@
+[
+  {
+    "product_id": "prot-cdw",
+    "code": "CDW",
+    "name": "Collision Damage Waiver",
+    "daily_price": "0.00",
+    "excess_before": "1500.00",
+    "excess_after": "1500.00",
+    "included_by_default": true,
+    "description": "Included. Caps your liability for accidental damage at the standard excess."
+  },
+  {
+    "product_id": "prot-tp",
+    "code": "TP",
+    "name": "Theft Protection",
+    "daily_price": "0.00",
+    "excess_before": "1500.00",
+    "excess_after": "1500.00",
+    "included_by_default": true,
+    "description": "Included. Caps your liability if the vehicle is stolen."
+  },
+  {
+    "product_id": "prot-super",
+    "code": "SUPERCOVER",
+    "name": "Super Cover (Excess Reduction)",
+    "daily_price": "15.99",
+    "excess_before": "1500.00",
+    "excess_after": "0.00",
+    "included_by_default": false,
+    "description": "Reduces the damage & theft excess to zero for the rental."
+  },
+  {
+    "product_id": "prot-pai",
+    "code": "PAI",
+    "name": "Personal Accident Insurance",
+    "daily_price": "5.49",
+    "excess_before": null,
+    "excess_after": null,
+    "included_by_default": false,
+    "description": "Accident cover for the driver and passengers."
+  },
+  {
+    "product_id": "prot-tws",
+    "code": "TWS",
+    "name": "Tyre & Windscreen Protection",
+    "daily_price": "6.99",
+    "excess_before": null,
+    "excess_after": null,
+    "included_by_default": false,
+    "description": "Removes liability for tyre and windscreen damage."
+  }
+]

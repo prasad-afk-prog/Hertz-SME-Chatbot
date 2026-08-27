@@ -8,6 +8,7 @@ from pathlib import Path
 
 import yaml
 
+from .catalogues import rate_plans as catalogue_rate_plans
 from .config import GenConfig
 from .fixtures import default_routing_rules, default_triggers
 from .models import Dataset
@@ -19,9 +20,14 @@ from .world import WorldBuilder
 def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
     world = WorldBuilder(cfg.seed).build()
     scenarios = ScenarioComposer(world).all()
+    rate_plans = catalogue_rate_plans()
 
+    companies: list = []
+    invoices: list = []
     if include_volume:
-        customers, bookings, _sessions, events = VolumeSampler(cfg, world).build()
+        sampler = VolumeSampler(cfg, world)
+        customers, bookings, _sessions, events = sampler.build()
+        companies, rate_plans, invoices = sampler.companies, sampler.rate_plans, sampler.invoices
     else:
         customers, bookings, events = [], [], []
 
@@ -37,6 +43,12 @@ def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
         triggers=default_triggers(),
         routing_rules=default_routing_rules(),
         scenarios=scenarios,
+        companies=companies,
+        rate_plans=rate_plans,
+        invoices=invoices,
+        protection_products=world.protection_products,
+        extras=world.extras,
+        policies=world.policies,
     )
 
 
@@ -65,10 +77,16 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
     _dump_json(out / "world/vehicle_classes.json", [m.model_dump(mode="json") for m in ds.vehicle_classes]); written.append(out / "world/vehicle_classes.json")
     _dump_jsonl(out / "world/rate_cards.jsonl", ds.rate_cards); written.append(out / "world/rate_cards.jsonl")
     _dump_jsonl(out / "world/availability.jsonl", ds.availability); written.append(out / "world/availability.jsonl")
+    # catalogues (always) — protection, extras, policies
+    _dump_json(out / "world/protection_products.json", [m.model_dump(mode="json") for m in ds.protection_products]); written.append(out / "world/protection_products.json")
+    _dump_json(out / "world/extras.json", [m.model_dump(mode="json") for m in ds.extras]); written.append(out / "world/extras.json")
+    _dump_json(out / "world/policies.json", [m.model_dump(mode="json") for m in ds.policies]); written.append(out / "world/policies.json")
 
     # config (always)
     _dump_yaml(out / "config/triggers.yaml", [m.model_dump(mode="json") for m in ds.triggers]); written.append(out / "config/triggers.yaml")
     _dump_yaml(out / "config/routing_rules.yaml", [m.model_dump(mode="json") for m in ds.routing_rules]); written.append(out / "config/routing_rules.yaml")
+    # rate plans (always) — small negotiated-plan catalogue
+    _dump_jsonl(out / "master/rate_plans.jsonl", ds.rate_plans); written.append(out / "master/rate_plans.jsonl")
 
     # golden tier
     if tier in ("all", "golden"):
@@ -82,6 +100,8 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
     if tier in ("all", "volume"):
         _dump_jsonl(out / "master/customers.jsonl", ds.customers); written.append(out / "master/customers.jsonl")
         _dump_jsonl(out / "master/bookings.jsonl", ds.bookings); written.append(out / "master/bookings.jsonl")
+        _dump_jsonl(out / "master/companies.jsonl", ds.companies); written.append(out / "master/companies.jsonl")
+        _dump_jsonl(out / "master/invoices.jsonl", ds.invoices); written.append(out / "master/invoices.jsonl")
         _dump_jsonl(out / "events/volume/events.jsonl", ds.events); written.append(out / "events/volume/events.jsonl")
 
     return written
