@@ -428,22 +428,112 @@ CLI: `python -m generator build --seed 42 --tier golden` / `--tier volume --cust
 
 ---
 
-## 16. Open questions (resolve to tighten realism)
+## 16. Resolved decisions — initial test/QA specification
 
-1. Confirm booking semantics: pickup/dropoff **locations** + dates + vehicle class (assumed) — any
-   extras (one-way fees, extras/insurance) that claims might reference?
-2. Real vehicle-class taxonomy and a representative station list from Hertz (for realistic world)?
-3. Target **volumes/SLAs** for load tier (events/sec peak, concurrent customers)?
-4. Are the funnel/mix assumptions in §7 acceptable as a starting point, or does product have
-   better priors?
-5. Which fields are **PII** (for the redaction/consent fixtures) per the M15 data policy?
-6. Do we want a **synthetic-conversation LLM** (generate varied replies) later, or are scripted
-   reply trees sufficient for now? (Scripted recommended first — deterministic.)
+The six open questions below were **resolved by product/client on 2026-08-31**. These are the
+starting test/QA specification; the components in §16.7 are to stay configurable so production data
+can replace them later. Original question text is kept as *Q*; the decision follows.
+
+### 16.1 Booking semantics — RESOLVED
+*Q: core booking fields + which extras claims might reference?*
+
+Core booking fields: **pickup location, drop-off location, pickup date/time, drop-off date/time,
+vehicle class**. Vehicle class is treated as selected/known unless the customer explicitly asks for
+recommendations. Claims and customer-service scenarios may also reference these, modelled as
+**optional** fields so conversations can query or *dispute* a charge: one-way/drop-off fees,
+additional-driver fees, child-seat/GPS and other extras, insurance/protection products, fuel
+charges, late-return fees, cancellation/no-show fees, taxes and mandatory charges, and
+deposit/authorization amounts.
+→ *Status:* v0.2 already models most of these (`extras`, `protection_products`, `one_way_fee`,
+`deposit`, `tax`, `Cancellation`). **Add:** explicit **late-return fee**, **no-show fee**, and a
+**fuel charge** line so "why was I charged X?" / dispute flows are testable.
+
+### 16.2 Vehicle-class taxonomy & stations — RESOLVED
+*Q: real taxonomy + representative station list?*
+
+Use a representative **Hertz-style taxonomy** (not exact live inventory), 12 classes:
+Economy, Compact, Midsize, Full-size, Premium, Luxury, Special/Luxury SUV, Compact SUV, Midsize
+SUV, Full-size SUV, Minivan, Pickup Truck. Stations: representative **airport + downtown/city +
+suburban** locations across **multiple countries/regions**, including **one-way pickup/drop-off
+combinations**. Enough geographic variety for realistic testing — not the full network. Keep station
+data **configurable** for later replacement with production inventory.
+→ *Status:* v0.2 has 7 classes (5 car + 2 van) and 6 airport-only stations. **Expand** to the
+12-class taxonomy (map to ACRISS-style codes: e.g. Economy=ECAR, Compact=CCAR, Midsize=ICAR,
+Full-size=FCAR, Premium=PCAR, Luxury=LCAR, Compact/Mid/Full-size SUV=CFAR/IFAR/SFAR,
+Special/Luxury SUV=LFAR, Minivan=IVAR, Pickup=PPAR — confirm codes at build); **add** city &
+suburban stations, more regions, and **one-way bookings** (pickup ≠ drop-off) that exercise
+`one_way_fee`.
+
+### 16.3 Load volumes / SLAs — RESOLVED
+*Q: target volumes/SLAs for the load tier?*
+
+Baseline load targets — normal **10 events/sec**, peak **50**, burst **100**; concurrent customers
+**500**, stress target **1,000**. Response SLAs — standard reply (no external call) **< 2 s**;
+tool/API-backed reply **< 5 s** under normal load; long-running/research workflows may be
+**async**; error/timeout handling must be **deterministic** and return a friendly response, never
+hang. Starting benchmarks — revisit with real traffic.
+→ *Status:* new. **Add** these as explicit knobs in `generator/config.py` (e.g. `events_per_sec`,
+`peak_eps`, `burst_eps`, `concurrent_customers`, `stress_customers`) and as documented targets for
+the soak/load tier and the mocks' timeout behaviour.
+
+### 16.4 Funnel / conversation mix — RESOLVED
+*Q: are the §7 assumptions an acceptable starting point?*
+
+Yes — use §7 as the initial baseline; for the first iteration **prioritise coverage over matching
+production traffic**. The test mix must include these **conversation intents**: new-booking
+inquiry, existing-booking lookup, booking modification, cancellation, pricing/quote, vehicle
+availability, vehicle-class questions, pickup/drop-off questions, fees & charges, extras/insurance,
+payment/deposit, complaints, claims/disputes, general Hertz info, unsupported/out-of-scope,
+ambiguous requests, and **customers changing requirements mid-conversation**. Replace with
+production-derived distributions once analytics exist.
+→ *Status:* the current dataset models 8 proactive **behavioural signals**, not inbound
+**conversation intents**. **Add** an intent taxonomy + scenarios covering the 17 intents above
+(this is the input side of the scripted-conversation work in §16.6).
+
+### 16.5 PII / M15 data policy — RESOLVED
+*Q: which fields are PII for redaction/consent fixtures?*
+
+Treat as PII unless M15 says otherwise: full name, email, phone, home/business address, driver's-
+licence info, passport/ID, date of birth, payment/card data, reservation/confirmation numbers when
+they can retrieve a booking, loyalty/member numbers, vehicle info tied to an identifiable customer,
+directly identifying technical info (e.g. IP) if M15 covers it, and any free-text containing
+personal data. **Synthetic/fake values only** — card, licence, passport numbers must never be real.
+For redaction tests, build fixtures with **both obvious PII and PII embedded naturally inside
+conversational messages**. **M15 remains the source of truth**; if it differs, follow M15.
+→ *Status:* current data is deliberately PII-light (no customer name/email; company `Contact` uses
+synthetic values). **Add** a redaction fixture set (obvious + embedded PII) and mark PII fields in
+the data dictionary.
+
+### 16.6 Synthetic-conversation LLM vs scripted trees — RESOLVED
+*Q: LLM-generated replies later, or scripted trees now?*
+
+**Scripted reply/conversation trees for Phase 1** — deterministic, reproducible, regression- and
+load-friendly. Architect so an **LLM-based synthetic-conversation generator** can be added in
+Phase 2 without rework.
+- **Phase 1:** `scripted scenario → deterministic customer responses → chatbot → expected-outcome validation`
+- **Phase 2:** `scenario generator → LLM-generated customer variations → chatbot → evaluator → pass/fail + metrics`
+Phase-2 generator varies wording, tone, typos, incomplete info, ambiguity, requirement changes,
+frustration and multi-turn context while preserving intent.
+→ *Status:* new. **Add** a scripted conversation-tree format (turns + branches + expected outcomes)
+alongside the existing golden scenarios; keep the evaluator interface pluggable for Phase 2.
+
+### 16.7 Keep configurable (overall recommendation)
+Proceed with the above as the initial spec, but keep these **8 components configurable** so
+deterministic testing starts now and production data / advanced synthetic conversations slot in
+later: (1) vehicle taxonomy, (2) station/location dataset, (3) pricing/fee rules,
+(4) funnel/conversation distribution, (5) load/traffic targets, (6) PII classification rules,
+(7) conversation scenarios, (8) expected chatbot outcomes.
 
 ---
 
-### Next step I can take
-I can scaffold a runnable `generator/` + `mocks/` package (Pydantic models, `WorldBuilder`,
-the 8 signal-pattern generators, the booking-API/LLM mocks, and ~5 seed golden scenarios with
-`expected/*.yaml` wired into pytest) so you have a working slice to build on. Say the word and
-I'll create it under `test_data/` + `generator/`.
+### Next steps (from these decisions)
+The runnable `generator/` + `mocks/` package is built (v0.2 — see `README.md` and
+[`17_Mock_Dataset_Audit.md`](17_Mock_Dataset_Audit.md)). Outstanding work implied by §16, in
+priority order:
+1. **Expand taxonomy & stations** (§16.2) — 12 classes, city/suburban stations, one-way bookings.
+2. **Fee completeness** (§16.1) — late-return, no-show and fuel charges + dispute scenarios.
+3. **Conversation-intent scenarios + scripted trees** (§16.4 / §16.6) — the Phase-1 test driver.
+4. **PII redaction fixtures** (§16.5) — obvious + embedded, synthetic only.
+5. **Load/SLA config knobs** (§16.3) — sizing for the soak/load tier and mock timeouts.
+6. **Future-client-compatibility layer** — repository interface + `field_map.yaml` + lenient DTO
+   (keeps 1–8 above swappable for production data with minimal code change).
