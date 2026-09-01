@@ -134,7 +134,27 @@ TASKS = [
      "POA/08", "Track B", "Not started", "", "", "", ""),
 
     ("B3", "LLM Integration & Fallback Service",
-     "POA/09", "Track B", "Not started", "", "", "", ""),
+     "POA/09", "Track B", "DONE", "2026-09-01", "2026-09-01",
+     "Full Y->W->X path: provider adapter, availability/confidence gate, and the localised "
+     "fallback catalogue. Same delegation principle as M10 — the W threshold calls "
+     "reference.decide_llm, which GS-06 already asserts against, so the golden scenario keeps "
+     "covering what ships; the refusal/off-scope/length heuristics layer around it rather than "
+     "replacing it. Highest-value test in the module: NO FALLBACK TEMPLATE MAY ASSERT A PRICE OR "
+     "AVAILABILITY, checked over all 8 signals x 4 locales — fallbacks fire when the pipeline is "
+     "already degraded, so a template quoting a figure would walk straight around M10's "
+     "verification. Also: a missing template slot degrades to the generic localised message rather "
+     "than showing a customer 'options for {route}'; an unsupported locale gets English AND is "
+     "flagged so the gap surfaces; fallbacks carry no claims by design. Extracted "
+     "CircuitBreaker/TTLCache to services/common/resilience.py since M09 needed the same breaker "
+     "as M10 — verified all 144 M10-era tests still passed BEFORE writing any M09 code, so a "
+     "refactor bug couldn't masquerade as an M09 bug. Two deviations recorded in POA/09 §11: sync "
+     "not async (async would pull pytest-asyncio into shared requirements-dev.txt), and retry "
+     "jitter deferred (can't be asserted deterministically; a flaky test in a sub-second suite is "
+     "worse than a documented gap).",
+     "services/conversation/llm/{provider,fallback,service}.py, services/common/resilience.py, "
+     "tests/test_llm_fallback_service.py (33 tests) — 177 total green. "
+     "5 of 7 §5 tasks done; Anthropic adapter blocked on §10.1, budgets need Redis/M15. "
+     "Local only, not pushed."),
 
     ("B4", "Claim Verification Service",
      "POA/10", "Track B", "DONE", "2026-09-01", "2026-09-01",
@@ -274,6 +294,18 @@ LOG = [
      "Now counts occurrences. Scoped POA/10 §11 honestly — 5 of 7 tasks done, the HTTP client and "
      "tolerance policy genuinely blocked on the §10 client questions.",
      "23 new tests, 144 total green; first services/ module", "local only"),
+
+    ("2026-09-01", "B3",
+     "Built M09 LLM Integration & Fallback. Did the shared-resilience refactor FIRST and confirmed "
+     "all 144 existing tests still passed before writing a line of M09 — otherwise a refactor bug "
+     "and an M09 bug would have looked identical. Same delegation discipline as M10: the "
+     "confidence threshold calls reference.decide_llm rather than reimplementing it. The test I "
+     "care most about asserts no fallback template can assert a price or availability, across "
+     "every signal and locale — fallbacks fire exactly when the pipeline is degraded, so that is "
+     "the path where an unverified claim would slip past M10. Recorded two honest deviations in "
+     "POA/09 §11 rather than quietly diverging from the spec: sync instead of async, and jitter "
+     "deferred.",
+     "33 new tests, 177 total green; services/conversation/llm/", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #

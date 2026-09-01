@@ -1,7 +1,73 @@
 # POA — LLM Integration & Fallback Service
 
-**Module ID:** M09 | **Flow stage:** 3 | **Flow nodes:** W, X, Y | **Status:** Draft
+**Module ID:** M09 | **Flow stage:** 3 | **Flow nodes:** W, X, Y
+**Status:** **Phase-1 implementation landed 2026-09-01** (Shagun, Track B) — see §11
 **Depends on:** M08 (caller) | **Feeds:** M10 (claims to verify) / M08 (draft or fallback)
+
+---
+
+## 11. Implementation status (2026-09-01)
+
+Code: `services/conversation/llm/` — `provider.py`, `fallback.py`, `service.py`.
+Tests: `tests/test_llm_fallback_service.py` (33 tests; 177 in the suite, all green).
+
+**Of the seven §5 tasks:**
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Provider adapter interface + Anthropic implementation | ◐ `LLMProvider` protocol + `MockProviderAdapter` done; **Anthropic deferred** pending §10.1 |
+| 2 | Timeout / retry / circuit-breaker wrapper | ✅ `RetryingProvider`; **jitter deferred** (see below) |
+| 3 | Confidence / availability decision (W) + reason logging | ✅ delegates to `reference.decide_llm`, layered heuristics on top |
+| 4 | Fallback catalogue + localisation + renderer | ✅ 8 signals × 4 locales, claim-free by test |
+| 5 | Output guardrails / sanitisation | ✅ refusal, off-scope, length, safety flags |
+| 6 | Cost / latency telemetry | ◐ `Usage` per generation; **budgets/limits deferred** (need Redis + M15) |
+| 7 | Provider / model config surface | ✅ `LLMConfig` + `build_provider()` |
+
+### Recorded deviations
+
+**Sync, not async.** §3.1 shows `async def generate`. The implementation is
+synchronous: everything else in this repo is sync, and going async would pull
+`pytest-asyncio` into `requirements-dev.txt` — a shared file, with Prasad's S5
+load work the other likely claimant (POA/18 §4 says announce before touching
+those). The protocol is otherwise shape-for-shape identical, so the migration is
+mechanical once a real SDK lands and async is actually needed.
+
+**Retry jitter is not implemented.** §3.4 asks for "bounded retries with
+jitter". Bounded retries are in; jitter is deferred because it cannot be
+asserted deterministically without injecting a randomness source that the tests
+would then have to pin — at which point the test proves nothing about real
+jitter. A flaky test in a sub-second suite is worse than a documented gap. Add
+it with the real provider, where it actually matters for thundering-herd.
+
+### Design decisions worth carrying forward
+
+- **The W threshold delegates to `reference.decide_llm`**, which
+  `test_golden_scenarios.py` already asserts against via GS-06. The refusal,
+  off-scope and length heuristics layer *around* that call rather than replacing
+  it, so the golden scenario keeps covering what ships. A test pins the agreement.
+- **No fallback template may assert a price, rate or availability**, asserted
+  over every template in every locale. Fallbacks fire when the pipeline is
+  *already* degraded, so a template quoting a figure would walk straight around
+  M10. This is the highest-value test in the module.
+- **A missing template slot degrades to the generic localised message** rather
+  than rendering `options for {route}` at a customer.
+- **An unsupported locale is served English *and flagged*** (`locale_missing`),
+  so a missing translation surfaces as a gap instead of shipping silently.
+- **Fallbacks carry no claims**, so M10 has nothing to verify on that path —
+  which is the point.
+- **A draft that survives W keeps its claims intact for M10.** §8's mitigation
+  for hallucinated offers is mandatory downstream verification, not cleverness
+  here.
+- **`CircuitBreaker`/`TTLCache` moved to `services/common/resilience.py`** when
+  M09 needed the same breaker as M10. Two implementations would drift, and one
+  would eventually be the wrong one.
+
+**Still open:** §10.1 (provider/model + hosting region for Hertz data residency)
+blocks the real adapter. §10.2 (is numeric confidence available?) — the code
+assumes it may be `None` and falls back conservatively, but the heuristics would
+be tuned differently given a real signal. §10.3 (streaming) is unaddressed;
+§10.4 (who owns fallback copy) matters before this copy goes near production —
+it is engineer-written placeholder text.
 
 ---
 

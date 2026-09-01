@@ -24,15 +24,18 @@ would be both slow and flaky.
 """
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import Callable, Protocol, runtime_checkable
 
 from mocks.booking_api import BookingAPIFailure, BookingAPIMock
+from services.common.resilience import Clock, CircuitBreaker, TTLCache
 
-Clock = Callable[[], float]
+# Re-exported so callers (and M10's tests) keep importing them from here.
+__all__ = [
+    "BookingAPIClient", "BookingAPIError", "BookingAPITimeout", "BookingAPIUnavailable",
+    "CacheKey", "CircuitBreaker", "Clock", "MockClientAdapter", "NoDataForKey", "TTLCache",
+]
 
 
 class BookingAPIError(Exception):
@@ -59,90 +62,6 @@ class NoDataForKey(BookingAPIError):
 class BookingAPIClient(Protocol):
     def rate(self, location_id: str, vehicle_class: str, on: date) -> Decimal: ...
     def availability(self, location_id: str, vehicle_class: str, on: date) -> int: ...
-
-
-# --------------------------------------------------------------------------- #
-# Circuit breaker
-# --------------------------------------------------------------------------- #
-@dataclass
-class CircuitBreaker:
-    """Closed -> (failures reach threshold) -> Open -> (cooldown) -> Half-open.
-
-    Half-open lets exactly one probe through: success closes it, failure reopens
-    for another cooldown. While open, calls fail immediately rather than each
-    paying the timeout.
-    """
-    threshold: int = 3
-    cooldown_s: float = 30.0
-    clock: Clock = time.monotonic
-
-    _consecutive_failures: int = field(default=0, init=False)
-    _opened_at: float | None = field(default=None, init=False)
-
-    @property
-    def is_open(self) -> bool:
-        if self._opened_at is None:
-            return False
-        if self.clock() - self._opened_at >= self.cooldown_s:
-            return False                      # cooled down -> half-open
-        return True
-
-    @property
-    def state(self) -> str:
-        if self._opened_at is None:
-            return "closed"
-        return "open" if self.is_open else "half-open"
-
-    def record_success(self) -> None:
-        self._consecutive_failures = 0
-        self._opened_at = None
-
-    def record_failure(self) -> None:
-        self._consecutive_failures += 1
-        if self._consecutive_failures >= self.threshold:
-            self._opened_at = self.clock()
-
-
-# --------------------------------------------------------------------------- #
-# Short-TTL cache (§3.2)
-# --------------------------------------------------------------------------- #
-CacheKey = tuple[str, str, str, date]        # (kind, location, class, date)
-
-
-@dataclass
-class TTLCache:
-    """Keyed on (kind, location, class, date) — all four matter.
-
-    Dropping the date from the key would serve yesterday's price for today,
-    which is precisely the kind of confidently-wrong answer M10 exists to
-    prevent.
-
-    Only successful lookups are cached. A failure must never be cached: an
-    outage would then keep poisoning verification for the rest of the TTL, even
-    after the API recovers and the breaker closes.
-    """
-    ttl_s: float = 30.0
-    clock: Clock = time.monotonic
-    _entries: dict[CacheKey, tuple[float, object]] = field(default_factory=dict, init=False)
-
-    def get(self, key: CacheKey) -> object | None:
-        hit = self._entries.get(key)
-        if hit is None:
-            return None
-        stored_at, value = hit
-        if self.clock() - stored_at >= self.ttl_s:
-            del self._entries[key]
-            return None
-        return value
-
-    def put(self, key: CacheKey, value: object) -> None:
-        self._entries[key] = (self.clock(), value)
-
-    def clear(self) -> None:
-        self._entries.clear()
-
-    def __len__(self) -> int:
-        return len(self._entries)
 
 
 # --------------------------------------------------------------------------- #
