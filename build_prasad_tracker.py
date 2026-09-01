@@ -157,11 +157,20 @@ TASKS = [
      "incl. e2e API->store->relay->stream) — 123 total green, ruff clean. Commit ee06657 (PR #1)"),
 
     ("A5", "Trigger Evaluation Engine",
-     "POA/04", "Track A", "Not started", "", "", "",
-     "NEXT. Depends on A2, A6 (both done). Consumes the Redis stream (events:in / group "
-     "trigger-eval), matches triggers, hands MatchCandidates to A6's reserve(), and emits the "
-     "'fire' decision as a Pydantic message (§5). Code against generator/fixtures.py trigger "
-     "defaults until B1 ships persistence."),
+     "POA/04", "Track A", "In progress", "2026-09-01", "",
+     "Core done + tested. The node-N brain in services/event_pipeline/triggers/. Sandboxed "
+     "field/op/value rule DSL (eq/ne/in/not_in/gt/gte/lt/lte/exists over dotted paths, no eval, §8). "
+     "Node-N routing: idempotency guard -> match active rules -> deferred matches to DeferredSink "
+     "(M06/A7), in-session matches to A6.reserve; approved -> FireMessage on FireSink (M08/B2), "
+     "suppressed -> SuppressionSink (Z1/M14), no match -> dropped. Contracts are messages to sinks "
+     "not direct calls (§5); FireMessage (generator/models.py) carries A6's reservation_id. "
+     "RedisTriggerConsumer (XREADGROUP events:in/group trigger-eval -> evaluate -> XACK) + "
+     "parse_stream_fields; end-to-end store->relay->parse->evaluate->fire tested with no Redis. "
+     "Deferred (POA/04 §11): I/J derivation workers (need A7), rule hot-reload, handoff branch "
+     "(§10.3), consumer partitioning.",
+     "services/event_pipeline/triggers/{dsl,evaluator,consumer,sinks}.py, generator/models.py "
+     "(FireMessage), POA/04 §11; tests/test_trigger_evaluation.py (12) — 146 total green, ruff "
+     "clean. Commit 2b46310 (PR #1)"),
 
     ("A3", "Customer Journey & Behavioural Event Capture (SDK / contract)",
      "POA/01", "Track A", "Not started", "", "", "",
@@ -169,8 +178,9 @@ TASKS = [
 
     ("A7", "Pending-Engagement Queue & Deferred Scheduler (Celery)",
      "POA/06", "Track A", "Not started", "", "", "",
-     "Depends on A2, A5. make_celery() factory already stubbed in services/platform "
-     "(celery added as a dep here)."),
+     "NEXT. Depends on A2, A5 (both done). Consumes A5's DeferredSink items + runs the I/J "
+     "derivation scans A5 deferred (uses A2 read models: has_repeated_search, last_event_at). "
+     "make_celery() factory already stubbed in services/platform (celery added as a dep here)."),
 
     ("A8", "Human Handoff Manager",
      "POA/07", "Track A", "Not started", "", "", "",
@@ -293,6 +303,18 @@ LOG = [
      "generator/models.py to reconcile with Shagun's local §5. Wrote the concurrency invariant test "
      "POA/05 §6 asks for (10 threads, cap 1 -> exactly one fires) using a per-customer lock seam.",
      "11 new tests, 134 total green; ruff clean", "7a5a0f8 (PR #1)"),
+
+    ("2026-09-01", "A5",
+     "Built the trigger engine — node N, the brain that ties A2, A6 and (eventually) M08 together. "
+     "Kept A5 thin on purpose: matching is a small sandboxed field/op/value DSL (no eval), "
+     "cap/precedence is delegated to A6, and every downstream is a message to a sink rather than a "
+     "direct call (POA/18 §5) so Track B's M08 and my own A7 plug in without A5 changing. The fire "
+     "decision is a shared FireMessage carrying A6's reservation_id, so the confirm/rollback loop "
+     "reaches back to the cap. Added an idempotency guard so an at-least-once stream redelivery "
+     "can't double-fire, and an end-to-end test that runs a real ingested event through "
+     "store->relay->parse->evaluate->fire without needing Redis. Scoped POA/04 §11 honestly: the "
+     "I/J derivation workers wait on A7, and the handoff branch on M07/§10.3.",
+     "12 new tests, 146 total green; ruff clean", "2b46310 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #
