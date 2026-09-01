@@ -80,6 +80,7 @@ Each module has its own POA file in this folder. Build order / dependency is ind
 | `15_POA_Platform_Infra_Security_Observability.md` | Platform: Infra, Security & Observability | cross-cutting | — |
 | `16_Test_Dataset_Strategy.md` | Synthetic test-dataset strategy (how to test the whole system with dummy data) | all modules | 02, 10 contracts |
 | `17_Mock_Dataset_Audit.md` | Mock-dataset audit vs the Hertz SME use case + v0.2 remediation (business domain, catalogues, lifecycle) | all modules | 16, models |
+| `18_Team_Work_Split_and_Git_Workflow.md` | Two-person work split (Track A / Track B), cross-track contract points, daily branch-and-merge workflow, live status tracker | process | 00 |
 
 ## 5. Recommended build sequence (phased)
 
