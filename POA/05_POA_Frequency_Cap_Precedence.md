@@ -90,3 +90,42 @@ Phase 1, with M04. ~2 weeks.
 1. Default caps and global daily maximum per customer?
 2. Sliding vs fixed window as the default?
 3. Is there a global cross-trigger cooldown after any engagement?
+
+## 11. Build notes / deviations (A6 — 2026-09-01)
+
+Delivered in `services/event_pipeline/frequency/` on the A1 template, over A2's
+storage pattern.
+
+- **Engagement ledger** (`tables.py`, `ledger.py`) — the Postgres source of truth
+  (`engagements`: reservation_id, customer, trigger, reserved_at, status). Only
+  `reserved`/`confirmed` rows count; `rolled_back` is ignored. Portable schema
+  (bigserial/rowid via with_variant) → Postgres in prod, SQLite in tests.
+- **Cap accounting** delegates to `reference.would_fire` — the executable
+  sliding-window spec the invariant suite already asserts — so the service and
+  the spec can't diverge. Sliding window is the default (§10.2); per-trigger cap
+  from `TriggerConfig.frequency_cap`, optional per-customer `global_cap`, optional
+  ISO-8601 `cooldown`.
+- **Atomic reserve** (`engine.py`) under a per-customer lock (`lock.py`):
+  cooldown → global cap → per-trigger filter → precedence winner → reserve a
+  ledger row. Lock is a seam — in-process `threading` default, Redis/advisory in
+  prod. A concurrency test (10 threads, 1 customer, cap 1) asserts exactly one
+  engagement fires (§6).
+- **Precedence** (`precedence.py`) — deterministic: precedence weight → match
+  specificity (condition count) → most-recent signal → lowest trigger id.
+  Order-independent (tested).
+- **reserve → confirm/rollback** (POA/05 §3.2): `EngagementDecision.reservation_id`
+  is the handle; `confirm()` finalises, `rollback()` frees the slot so a failed
+  M08 delivery doesn't burn the cap (tested). **Cross-track**: this handshake is
+  shared with M08 — the contract models are in `generator/models.py`
+  (`MatchCandidate`, `EngagementDecision`, `SuppressionReason`); reconcile names
+  with Shagun's local POA/18 §5 edit when it lands.
+- **Suppression accounting** (§2): every non-approval carries a machine-readable
+  `suppression_reason`, and `losers` maps each dropped trigger → reason for M14.
+
+**Deferred:** Redis counters (the ledger is authoritative; counters are a
+rebuildable cache), the reserved-but-never-confirmed TTL reconciliation sweep,
+and admin/M13 wiring of default caps/cooldowns (values are engine params now).
+No HTTP surface — A6 is a library invoked by A5.
+
+**Acceptance (§6):** ≤ cap under concurrency ✓, deterministic precedence ✓,
+rollback frees the slot ✓, every suppression logged with a reason ✓.

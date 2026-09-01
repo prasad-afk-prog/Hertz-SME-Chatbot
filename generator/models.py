@@ -469,6 +469,37 @@ class RoutingRule(BaseModel):
     fallback_queue: str | None = None
 
 
+# ---- engagement decision (A6/M05 -> M08) — POA/05, POA/18 §5 -------------- #
+# NOTE (cross-track): the reserve->confirm/rollback handshake is shared with
+# Track B's M08. Shagun has a local POA/18 §5 edit for it; reconcile these names
+# with that when it lands.
+class SuppressionReason(str, Enum):
+    frequency_cap = "frequency_cap"       # per-trigger cap hit
+    global_cap = "global_cap"             # per-customer global cap hit
+    cooldown = "cooldown"                 # inside the global quiet period
+    precedence_loss = "precedence_loss"   # lost precedence arbitration
+
+
+class MatchCandidate(BaseModel):
+    """One in-session trigger match handed to M05 for cap/precedence arbitration."""
+    model_config = ConfigDict(extra="forbid")
+    trigger: TriggerConfig
+    signal_at: datetime
+
+
+class EngagementDecision(BaseModel):
+    """M05's verdict. `reservation_id` is the handle M08 confirms (on delivery) or
+    rolls back (on failure), so a failed send never burns the customer's cap —
+    the reserve->confirm/rollback contract (POA/05 §3.2)."""
+    model_config = ConfigDict(extra="forbid")
+    approved: bool
+    customer_id: str
+    reservation_id: str | None = None
+    winner_trigger_id: str | None = None
+    suppression_reason: SuppressionReason | None = None                # set when not approved
+    losers: dict[str, SuppressionReason] = Field(default_factory=dict)  # trigger_id -> reason (M14)
+
+
 # --------------------------------------------------------------------------- #
 # LLM fixtures & claims (M09 <-> M10)
 # --------------------------------------------------------------------------- #

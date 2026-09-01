@@ -219,7 +219,7 @@ it. Kept this way, git merges the two halves cleanly.
 | A3 Event Capture SDK | Prasad | not started | |
 | A4 Ingestion API | Prasad | in progress | 2026-09-01 core done + tested: POST /v1/events + /v1/events:batch (partial-success) writing through A2's outbox; Event-schema validation = PII allow-list (extra=forbid); auth + identity-binding + rate-limit behind seams (API key today, mTLS/JWT later); idempotent via store dedupe; 202/409/429/503/422 mapping; e2e API→store→relay→stream tested. Deferred: real auth mechanism (§10.1), Redis rate limiter, load verification (POA/02 §11) |
 | A5 Trigger Evaluation | Prasad | not started | |
-| A6 Frequency/Precedence | Prasad | not started | |
+| A6 Frequency/Precedence | Prasad | in progress | 2026-09-01 core done + tested: engagement ledger + sliding-window caps (delegates reference.would_fire), per-customer global cap + cooldown, deterministic precedence (weight→specificity→recency→id), atomic reserve under a per-customer lock (concurrency invariant tested), reserve→confirm/rollback so a failed send doesn't burn the cap, suppression reasons for M14. CROSS-TRACK: A6→M08 contract (MatchCandidate/EngagementDecision/SuppressionReason) added to generator/models.py — reconcile with Shagun's local §5 handshake. Deferred: Redis counters, reservation TTL sweep, M13 cap config (POA/05 §11) |
 | A7 Pending Queue/Scheduler | Prasad | not started | |
 | A8 Human Handoff | Prasad | not started | keep thin around RoutingRule dicts |
 | S3 Intent scenarios / scripted trees | Shagun | DONE | generator/intents.py, 17 intents, 23 tests |
