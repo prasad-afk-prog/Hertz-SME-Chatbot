@@ -65,7 +65,7 @@ TASK_COLUMNS = [
 TASKS = [
     # --- Sprint 0: shared test-dataset backlog (POA/16 §16) ----------------- #
     ("S3", "Conversation-intent scenarios + scripted trees (17 intents)",
-     "POA/16 §16.4, §16.6", "Sprint 0", "Reverted", "2026-09-01", "",
+     "POA/16 §16.4, §16.6", "Sprint 0", "DONE", "2026-09-01", "2026-09-01",
      "Built IntentScenarioComposer with one scripted tree per mandated intent — depth varied by "
      "structural distinctness (single-turn lookup, multi-turn slot filling, out-of-scope refusal, "
      "ambiguity->clarify, and CV-17 mid-conversation requirement change as a real branching tree). "
@@ -75,10 +75,9 @@ TASKS = [
      "mock reads. Split delivered_excludes (claim WRONG vs live data, must never be delivered) from "
      "superseded_tokens (claim CORRECT when said, then obsoleted — must not reach the final "
      "confirmation); conflating them made one of the two cases silently stop testing anything.",
-     "REVERTED 2026-09-01 — work is not in the tree. Fully recoverable: "
-     "git revert --no-commit <revert-sha>  (or cherry-pick 9840cb0, 78aedf0). "
-     "Was: generator/intents.py, models.py, pipeline.py, cli.py, "
-     "tests/test_conversation_intents.py — 73 tests green."),
+     "generator/intents.py (new), models.py, pipeline.py, cli.py, "
+     "tests/test_conversation_intents.py — 73 tests green. Reverted then restored "
+     "2026-09-01; in the tree and green. Local only, not pushed."),
 
     ("S4", "PII redaction fixtures — obvious + embedded PII",
      "POA/16 §16.5", "Sprint 0", "Not started", "", "", "", ""),
@@ -117,12 +116,13 @@ TASKS = [
 
     # --- Process ------------------------------------------------------------ #
     ("P1", "Two-person work split + daily git workflow (POA/18)",
-     "POA/18", "Process", "Reverted", "2026-08-31", "",
+     "POA/18", "Process", "DONE", "2026-08-31", "2026-09-01",
      "Wrote POA/18: split the module dependency graph into two tracks so no module gets built "
      "twice, mapped cross-track contract points, and defined the daily push/merge routine. "
      "Corrected an early error in it — B1 does NOT block Prasad's A5/A6/A8, because the M13 "
      "contract already exists. Confirmed track ownership after Prasad accepted Track A.",
-     "REVERTED 2026-09-01 — POA/18 is not in the tree. Recoverable from d1f6987, 3f444b8."),
+     "POA/18_Team_Work_Split_and_Git_Workflow.md + POA/00 index row. Reverted then restored "
+     "2026-09-01; in the tree. Local only, not pushed."),
 
     ("P2", "Agree git workflow (POA/18 §6) with Prasad",
      "POA/18 §6", "Process", "Blocked", "", "",
@@ -173,6 +173,13 @@ LOG = [
      "tree verified byte-identical to 67b977c; 43 tests green. New standing rule from here: all "
      "work stays LOCAL, nothing goes to GitHub unless explicitly asked.",
      "Tree == 67b977c, 43 tests green", "local only"),
+
+    ("2026-09-01", "S3 / P1",
+     "Restored both reverted deliverables locally at Shagun's request — S3 first, then POA/18. "
+     "Restored at file level from 78aedf0 / b54edb8 rather than by reverting the revert, so each "
+     "came back independently and history stays readable. Restoring POA/18 also re-validated the "
+     "'see POA/18 §4' pointer in generator/models.py, which was dangling in between.",
+     "Working tree == b54edb8 (plus tracker improvements); 73 tests green", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #
