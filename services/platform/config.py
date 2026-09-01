@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # http
     request_id_header: str = "X-Request-ID"
 
+    # A4 Ingestion API (POA/02)
+    ingest_api_key: str | None = None      # portal->API shared secret; None = open (local only)
+    ingest_rate_limit_per_min: int = 0     # 0 disables; else per-customer fixed-window limit
+
 
 @lru_cache
 def get_settings() -> Settings:

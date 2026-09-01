@@ -173,4 +173,4 @@ def test_event_pipeline_wires_postgres_readiness():
     body = client.get("/readyz").json()
     assert "postgres" in body["checks"]               # A2 readiness check registered
     assert body["status"] == "ready"
-    assert client.get("/").json()["status"] == "event-store wired"
+    assert client.get("/").json()["status"] == "ingestion+store wired"

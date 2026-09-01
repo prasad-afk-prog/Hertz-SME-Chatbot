@@ -217,7 +217,7 @@ it. Kept this way, git merges the two halves cleanly.
 | A1 Platform skeleton | Prasad | in progress | 2026-09-01 done+tested: services/platform/ template (create_app: logging, correlation-id, Prometheus /metrics, OTel seam, health/readyz, errors, lazy pg/redis/celery factories) + booting services/event_pipeline/ + docker-compose + Dockerfile + CI + .env.example; repo layout ratified in POA/15 §12; 8 tests |
 | A2 Event Store | Prasad | in progress | 2026-09-01 core done + downstream-ready: Postgres schema + idempotent transactional write+outbox, at-least-once Redis-stream relay (property-tested), read models (recent/session/repeated-search), postgres readiness. Runs on Postgres/prod + SQLite/tests. Deferred: retention/partition job, signal-J booking backfill, live-Redis integration (POA/03 §11) |
 | A3 Event Capture SDK | Prasad | not started | |
-| A4 Ingestion API | Prasad | not started | |
+| A4 Ingestion API | Prasad | in progress | 2026-09-01 core done + tested: POST /v1/events + /v1/events:batch (partial-success) writing through A2's outbox; Event-schema validation = PII allow-list (extra=forbid); auth + identity-binding + rate-limit behind seams (API key today, mTLS/JWT later); idempotent via store dedupe; 202/409/429/503/422 mapping; e2e API→store→relay→stream tested. Deferred: real auth mechanism (§10.1), Redis rate limiter, load verification (POA/02 §11) |
 | A5 Trigger Evaluation | Prasad | not started | |
 | A6 Frequency/Precedence | Prasad | not started | |
 | A7 Pending Queue/Scheduler | Prasad | not started | |
