@@ -113,6 +113,7 @@ class VehicleCategory(str, Enum):
 class LocationType(str, Enum):
     airport = "airport"
     city = "city"
+    suburban = "suburban"        # S1 (POA/16 §16.2) — downtown/city + suburban stations
 
 
 class BookingStatus(str, Enum):
@@ -120,6 +121,7 @@ class BookingStatus(str, Enum):
     active = "active"
     completed = "completed"
     cancelled = "cancelled"
+    no_show = "no_show"          # S2 (POA/16 §16.1) — customer never collected; no-show fee applies
 
 
 class PricingUnit(str, Enum):
@@ -135,6 +137,29 @@ class PolicyTopic(str, Enum):
     driver_age = "driver_age"
     cross_border = "cross_border"
     late_return = "late_return"
+    no_show = "no_show"          # S2 (POA/16 §16.1)
+
+
+# ---- fee / dispute enums (S2 — POA/16 §16.1) ------------------------------ #
+class FeeType(str, Enum):
+    """Itemised charge types a booking can carry — the ones a customer asks
+    'why was I charged X?' about. `one_way` is priced at booking; the rest are
+    post-rental charges that can be disputed."""
+    one_way = "one_way"
+    late_return = "late_return"
+    no_show = "no_show"
+    fuel = "fuel"
+    additional_driver = "additional_driver"
+    young_driver = "young_driver"
+    cross_border = "cross_border"
+    other = "other"
+
+
+class DisputeResolution(str, Enum):
+    upheld = "upheld"                      # charge is correct, stands
+    refunded = "refunded"                  # charge was wrong, fully reversed
+    partial_refund = "partial_refund"      # charge partly reduced to the correct amount
+    escalated_to_human = "escalated_to_human"
 
 
 # --------------------------------------------------------------------------- #
@@ -232,6 +257,19 @@ class Cancellation(BaseModel):
     policy: str
 
 
+class FeeLine(BaseModel):
+    """An itemised charge on a booking (S2 — POA/16 §16.1). `one_way` is part of
+    the quoted `total`; late-return / no-show / fuel are post-rental charges that
+    surface on the final statement and can be disputed."""
+    model_config = ConfigDict(extra="forbid")
+    code: FeeType
+    label: str
+    amount: Decimal
+    currency: str = "GBP"
+    disputed: bool = False
+    dispute_reason: str | None = None
+
+
 class Booking(BaseModel):
     model_config = ConfigDict(extra="forbid")
     booking_id: str
@@ -253,6 +291,9 @@ class Booking(BaseModel):
     deposit: Decimal | None = None
     tax: Decimal | None = None                              # VAT component of total
     cancellation: Cancellation | None = None
+    # S2 (POA/16 §16.1) — one-way and itemised/disputable charges
+    one_way_fee: Decimal | None = None                      # set when dropoff != pickup
+    fees: list[FeeLine] = Field(default_factory=list)       # itemised charges (incl. disputes)
 
 
 # --------------------------------------------------------------------------- #
@@ -504,6 +545,29 @@ class Scenario(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+# Fee-dispute fixtures (S2 — POA/16 §16.1: "why was I charged X?" / disputes)
+#
+# Hand-authored, deterministic fixtures parallel to the golden Scenario tier but
+# for the fees/charges domain rather than the proactive trigger pipeline. Each
+# pins a booking's billed fee against the rule-correct amount and the expected
+# dispute resolution, so fee/claim-dispute conversations (Intent.claim_dispute /
+# Intent.fees_and_charges) have grounded, checkable expected outcomes.
+# --------------------------------------------------------------------------- #
+class FeeDispute(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dispute_id: str
+    description: str
+    seed: int
+    customer_id: str
+    booking_id: str
+    fee: FeeLine                       # the charge under dispute, as billed
+    customer_message: str              # inbound "why was I charged X?"
+    correct_amount: Decimal            # rule-correct amount (== fee.amount when upheld)
+    resolution: DisputeResolution      # pinned expected outcome
+    grounds: str                       # the policy/rule the resolution rests on
+
+
+# --------------------------------------------------------------------------- #
 # Scripted conversation trees (POA/16 §16.4 intents, §16.6 Phase-1 format)
 #
 # Deliberately SEPARATE from Scenario/Expected/TerminalState above: those model
@@ -627,3 +691,7 @@ class Dataset(BaseModel):
     policies: list[Policy] = Field(default_factory=list)
     # S3 — scripted conversation trees (POA/16 §16.4/§16.6)
     conversations: list[ConversationScenario] = Field(default_factory=list)
+    # S2 — hand-authored fee-dispute fixtures (POA/16 §16.1)
+    fee_disputes: list[FeeDispute] = Field(default_factory=list)
+    # S5 — load/SLA/timeout targets this dataset is sized against (POA/16 §16.3)
+    load_profile: dict = Field(default_factory=dict)

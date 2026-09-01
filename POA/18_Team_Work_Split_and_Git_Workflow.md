@@ -211,9 +211,9 @@ it. Kept this way, git merges the two halves cleanly.
 
 | Item | Owner | Status | Notes |
 |---|---|---|---|
-| S1 Taxonomy & stations | Prasad | not started | |
-| S2 Fee completeness | Prasad | not started | |
-| S5 Load/SLA knobs | Prasad | not started | |
+| S1 Taxonomy & stations | Prasad | in progress | 2026-09-01 implemented+tested locally: 12-class taxonomy (additive world pass-3, golden prices byte-stable), city/suburban + US/USD stations, one-way helpers + config knob |
+| S2 Fee completeness | Prasad | in progress | 2026-09-01 implemented+tested locally: one-way + late-return/no-show/fuel fees & disputes, FeeLine/FeeDispute models, 5 dispute fixtures |
+| S5 Load/SLA knobs | Prasad | in progress | 2026-09-01 implemented+tested locally: LoadProfile (eps/concurrency/SLA/mock-timeout) on GenConfig, exposed via volume + config/load_profile.yaml |
 | A1 Platform skeleton | Prasad | not started | |
 | A2 Event Store | Prasad | not started | |
 | A3 Event Capture SDK | Prasad | not started | |

@@ -8,9 +8,11 @@ attributes (`rate_plans`, `companies`, `invoices`) after `build()`.
 """
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from .business import CompanyFactory, build_invoices
 from .catalogues import rate_plans as _rate_plans
-from .config import GenConfig
+from .config import GenConfig, LoadProfile
 from .customers import CustomerFactory
 from .models import Booking, Company, Customer, Event, Invoice, RatePlan, Session
 from .sessions import SessionSimulator
@@ -24,6 +26,13 @@ class VolumeSampler:
         self.rate_plans: list[RatePlan] = []
         self.companies: list[Company] = []
         self.invoices: list[Invoice] = []
+        # S5 (POA/16 §16.3) — the load/SLA targets this tier is sized against.
+        self.load: LoadProfile = cfg.load
+
+    def load_summary(self) -> dict:
+        """The S5 load/SLA/timeout targets as a plain dict (for config output
+        and for the soak/load harness to read)."""
+        return asdict(self.load)
 
     def build(self) -> tuple[list[Customer], list[Booking], list[Session], list[Event]]:
         self.rate_plans = _rate_plans()

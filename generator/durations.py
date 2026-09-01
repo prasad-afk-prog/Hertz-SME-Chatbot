@@ -5,6 +5,7 @@ seconds. Enough for wait periods, expiry windows and frequency-cap windows.
 """
 from __future__ import annotations
 
+import math
 import re
 from datetime import timedelta
 
@@ -26,3 +27,15 @@ def parse_duration(text: str) -> timedelta:
         minutes=parts.get("minutes", 0),
         seconds=parts.get("seconds", 0),
     )
+
+
+def late_return_extra_days(overdue: timedelta, grace_minutes: int = 29) -> int:
+    """Chargeable extra rental days for a late return (S2 — POA/16 §16.1).
+
+    Within the grace period -> 0. Beyond it, each started 24-hour period counts
+    as one extra rental day, so being 40 minutes late is 1 day and 26 hours late
+    is 2. `overdue` is (actual_return - due_return); non-positive means on time.
+    """
+    if overdue <= timedelta(minutes=grace_minutes):
+        return 0
+    return math.ceil(overdue / timedelta(days=1))
