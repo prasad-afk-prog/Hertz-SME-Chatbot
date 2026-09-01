@@ -568,5 +568,35 @@ priority order:
 3. **Conversation-intent scenarios + scripted trees** (§16.4 / §16.6) — the Phase-1 test driver.
 4. **PII redaction fixtures** (§16.5) — obvious + embedded, synthetic only.
 5. **Load/SLA config knobs** (§16.3) — sizing for the soak/load tier and mock timeouts.
-6. **Future-client-compatibility layer** — repository interface + `field_map.yaml` + lenient DTO
-   (keeps 1–8 above swappable for production data with minimal code change).
+6. ~~**Future-client-compatibility layer**~~ — **DONE (S6, 2026-09-01).** `generator/repository.py`
+   ships the three named artifacts: the `ReferenceRepository` protocol, `generator/field_map.yaml`,
+   and the lenient `coerce()` DTO step.
+
+   **Scope, stated precisely** — S6 adds a swap point for the reference-data components and
+   *documents* the ones that were already swappable. §16.7's eight:
+
+   | # | Component | Swap point | Added by |
+   |---|-----------|-----------|----------|
+   | 1 | Vehicle taxonomy | `ReferenceRepository.vehicle_classes` | **S6** |
+   | 2 | Station / location dataset | `ReferenceRepository.locations` | **S6** |
+   | 3 | Pricing / fee rules | `ReferenceRepository.rate` / `.deposit` / `.nominal_daily_rate` | **S6** |
+   | 4 | Funnel / conversation distribution | `GenConfig` — pass a different instance | already |
+   | 5 | Load / traffic targets | `GenConfig` sizing fields | already |
+   | 6 | PII classification rules | `pii.PII_FIELDS` | already (S4) |
+   | 7 | Conversation scenarios | `intents.ReplySource` | already (S3) |
+   | 8 | Expected chatbot outcomes | `intents.Evaluator` | already (S3) |
+
+   The interface was **derived from real call sites** — exactly the public surface of `World` that
+   `generator/`, `mocks/` and `tests/` actually use — so it neither over- nor under-specifies.
+   `GeneratedRepository` is a thin pass-through, and a test asserts it agrees with the world on
+   *every* rate and availability key, because drift there would quietly break claim verification.
+
+   **Leniency is a boundary step, not a loosening.** The contract models keep `extra="forbid"`, and
+   a test pins that S6 left that intact. `coerce()` renames fields, maps client vocabulary onto our
+   enums, drops what has no canonical home — and **reports every one of those in a
+   `CoercionReport`**, because a silently dropped field is data loss. `strict=True` refuses rather
+   than drops. `validate_field_map()` catches a typo'd enum target at load time instead of on live
+   client data.
+
+   `field_map.yaml` lives beside the code, **not** under `test_data/`, so regenerating the dataset
+   cannot delete it. Swapping in a real client is meant to be a change to that file, not to code.

@@ -101,7 +101,27 @@ TASKS = [
      "Output: test_data/fixtures/pii_redaction.json. Local only, not pushed."),
 
     ("S6", "Future-client-compat layer — repository interface, field_map.yaml, lenient DTO",
-     "POA/16 §16 item 6", "Sprint 0", "Not started", "", "", "", ""),
+     "POA/16 §16 item 6", "Sprint 0", "DONE", "2026-09-01", "2026-09-01",
+     "Shipped the three named artifacts: ReferenceRepository protocol, generator/field_map.yaml, "
+     "and the lenient coerce() DTO. Scoped the claim honestly rather than repeating the S3 "
+     "overclaim: the spec says 'keeps 1-8 swappable', but a repository over entity data only "
+     "covers §16.7 components 1-3. Components 4-8 were ALREADY swappable (GenConfig instance, "
+     "PII_FIELDS dict, S3's ReplySource and Evaluator protocols) — so S6 adds the seam for 1-3 and "
+     "documents the swap point for all eight in a table, which makes 'minimal code change' a "
+     "checkable claim instead of a slogan. Derived the interface from real call sites (grepped "
+     "every attribute reached through World) rather than inventing it, so it neither over- nor "
+     "under-specifies. GeneratedRepository is a thin pass-through and a test asserts it agrees "
+     "with the world on EVERY rate and availability key, not a spot-check — drift there would "
+     "quietly break claim verification. Leniency is boundary-only: the contract models keep "
+     "extra='forbid' and a test pins that S6 didn't relax it; coerce() reports every rename, "
+     "value-map and drop in a CoercionReport because a silently dropped field is data loss, and "
+     "strict=True refuses rather than drops. field_map.yaml sits beside the code, not under "
+     "test_data/, so regenerating the dataset can't delete it. "
+     "BUG CAUGHT BY TEST: the enum-target validator used issubclass(annotation, Enum), which "
+     "matches nothing for optional fields like `Transmission | None` — so it was silently "
+     "validating zero value-maps. Fixed with _enum_of() unwrapping the union.",
+     "generator/repository.py (new), generator/field_map.yaml (new), README, POA/16, "
+     "tests/test_repository_compat.py (22 tests) — 121 total green. Local only, not pushed."),
 
     # --- Track B: service modules ------------------------------------------ #
     ("B1", "Admin Console & Trigger Configuration — persistence + CRUD",
@@ -210,6 +230,17 @@ LOG = [
      "reaches the LLM' is an M08/M09 acceptance test, since no orchestrator exists yet to build a "
      "prompt.",
      "26 new tests, 99 total green; test_data/fixtures/pii_redaction.json", "local only"),
+
+    ("2026-09-01", "S6",
+     "Built the future-client-compatibility layer, closing Sprint 0 on my side. The judgement call "
+     "was scope: the spec's 'keeps 1-8 swappable' is broader than a repository can deliver, so I "
+     "shipped the seam for components 1-3 and documented the existing swap point for 4-8 in a "
+     "table rather than claiming coverage I didn't have. Derived the protocol by grepping actual "
+     "World call sites instead of inventing a method set. A test I wrote to catch typo'd enum "
+     "targets immediately caught a real bug in my own validator — it used issubclass(annotation, "
+     "Enum), which matches nothing for optional enum fields, so it had been validating zero "
+     "value-maps.",
+     "22 new tests, 121 total green; generator/repository.py + field_map.yaml", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #

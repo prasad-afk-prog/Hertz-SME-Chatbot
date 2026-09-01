@@ -1,0 +1,101 @@
+# field_map.yaml — client vocabulary -> canonical vocabulary (S6, POA/16 §16 item 6)
+#
+# This file is HAND-AUTHORED INPUT, not generated output. It lives beside the
+# code rather than under test_data/ precisely so that wiping test_data/ to
+# regenerate the dataset cannot delete it.
+#
+# Used by generator.repository.coerce() to turn a real client's record shape
+# into our canonical contract models without changing those models. The models
+# stay strict (extra="forbid"); this file is how a differently-shaped feed is
+# made to fit, and `validate_field_map()` checks it is coherent.
+#
+# Three sections per model:
+#   fields:  client field name  -> canonical field name
+#   values:  canonical field    -> { client value -> canonical value }
+#   drop:    client fields we deliberately discard (won't be reported as loss)
+#
+# Anything not listed and not a canonical field is DROPPED and REPORTED, because
+# a silently discarded field is data loss. Use `strict=True` to fail instead.
+#
+# The mapping below is an illustrative example modelled on a typical fleet feed.
+# Replace it wholesale when a real client schema arrives — that replacement is
+# the "minimal code change" S6 promises: this file changes, the code does not.
+
+models:
+  Location:
+    fields:
+      stationCode: location_id
+      stationName: name
+      countryCode: country
+      regionName: region
+      tz: timezone
+      stationType: type
+      addressLine: address
+      hours: opening_hours
+      currencyCode: currency
+    values:
+      type:
+        AIRPORT: airport
+        CITY: city
+        DOWNTOWN: city
+    drop:
+      - internalStationRef      # client bookkeeping, no canonical meaning
+      - lastSyncedAt
+
+  VehicleClass:
+    fields:
+      classCode: code
+      classLabel: label
+      sampleModel: example_model
+      vehicleCategory: category
+      seatCount: seats
+      doorCount: doors
+      gearbox: transmission
+      fuel: fuel_type
+      bags: luggage
+      depositAmount: deposit
+      minAge: min_driver_age
+      mileageTerms: mileage_policy
+    values:
+      category:
+        CAR: car
+        PASSENGER: car
+        VAN: van
+        LCV: van
+      transmission:
+        MANUAL: manual
+        AUTO: automatic
+        AUTOMATIC: automatic
+      fuel_type:
+        PETROL: petrol
+        GASOLINE: petrol
+        DIESEL: diesel
+        HYBRID: hybrid
+        EV: electric
+        ELECTRIC: electric
+    drop:
+      - acrissCode              # we key on `code`; the raw ACRISS adds nothing
+
+  RateCard:
+    fields:
+      stationCode: location_id
+      classCode: vehicle_class
+      rateDate: date
+      dailyNet: daily_rate
+      currencyCode: currency
+      weeklyNet: weekly_rate
+      depositAmount: deposit
+      vatRate: tax_rate
+      oneWayFee: one_way_fee
+    drop:
+      - rateSource
+      - priceListVersion
+
+  Availability:
+    fields:
+      stationCode: location_id
+      classCode: vehicle_class
+      onDate: date
+      unitsFree: available
+    drop:
+      - snapshotTakenAt

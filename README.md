@@ -23,7 +23,7 @@ drives the correct outcomes **before the real M02–M14 services exist**.
 
 ```bash
 pip install -r requirements-dev.txt          # pydantic, pyyaml, pytest
-python -m pytest                              # 99 tests, all green
+python -m pytest                              # 121 tests, all green
 python -m generator build --seed 42 --tier golden --out test_data
 python -m generator build --seed 42 --tier volume --customers 1000 --out test_data
 ```
@@ -43,6 +43,8 @@ generator/        the generator (pure Python + pydantic)
   intents.py      IntentScenarioComposer — 17 scripted conversation trees (inbound),
                   + ReplySource & Evaluator protocols (Phase-1 scripted / Phase-2 LLM)
   pii.py          PII redaction fixtures + the PII_FIELDS data dictionary (S4)
+  repository.py   ReferenceRepository seam + lenient DTO for future client data (S6)
+  field_map.yaml  client vocabulary -> canonical (hand-authored; NOT generated)
   reference.py    executable spec of the trust-critical decisions
                   (M05/M08-09 redaction/M09/M10/M12)
   fixtures.py     default triggers + handoff routing rules (M13)
@@ -97,6 +99,7 @@ the mock returns the world's true £52.21, and the verifier must correct/strip i
 | `test_golden_scenarios.py` | every branch (W/AA/O/AE/AH) drives its pinned expected outcome |
 | `test_invariants.py` | frequency cap never exceeded over volume; **no unverified claim ever delivered** |
 | `test_business_entities.py` | v0.2 companies/plans/invoices/catalogues are schema-valid & referentially consistent; booking lifecycle exercised; totals derived not flat |
+| `test_repository_compat.py` | S6: the repository agrees with the world on **every** rate/availability key; an unrelated implementation satisfies the same protocol; coercion renames/maps/drops **and reports**; the strict models are still strict; a typo'd enum target in `field_map.yaml` fails at load |
 | `test_pii_redaction.py` | S4: synthetic PII is provably fake (cards fail Luhn, emails RFC 2606, phones Ofcom drama block, IPs RFC 5737); spans are exact; redaction removes all PII **and nothing else**; the PII field marking still matches the models |
 | `test_conversation_intents.py` | all 17 POA/16 §16.4 intents covered; conversation claims grounded in the world; wrong quotes differ from live data and are excluded; mid-conversation requirement changes override slots; the reply source is swappable (§16.6 Phase-2 seam) |
 
