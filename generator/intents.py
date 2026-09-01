@@ -44,6 +44,38 @@ _TZ = timezone.utc
 
 
 # --------------------------------------------------------------------------- #
+# Paths through a tree — ONE definition, used by the reply source, the slot
+# resolver and the tests. Two implementations of "which turns are on this path"
+# would agree only by accident.
+# --------------------------------------------------------------------------- #
+def path(scenario: ConversationScenario, branch_id: str | None = None) -> list[ConversationTurn]:
+    """The turns of the main path, or of `branch_id` taken from its `from_turn`."""
+    if branch_id is None:
+        return list(scenario.turns)
+    for br in scenario.branches:
+        if br.branch_id == branch_id:
+            head = [t for t in scenario.turns if t.turn <= br.from_turn]
+            return head + list(br.turns)
+    raise KeyError(f"no branch {branch_id!r} in {scenario.conversation_id}")
+
+
+def paths(scenario: ConversationScenario) -> list[tuple[str | None, list[ConversationTurn], ConversationExpected]]:
+    """Every path through the tree: (branch_id, turns, expected).
+
+    Use this rather than `scenario.turns` in any check that should hold for the
+    whole tree — branch turns carry claims and expectations too.
+    """
+    out = [(None, path(scenario), scenario.expected)]
+    out += [(br.branch_id, path(scenario, br.branch_id), br.expected) for br in scenario.branches]
+    return out
+
+
+def all_turns(scenario: ConversationScenario) -> list[ConversationTurn]:
+    """Main-path turns plus every branch's own turns (no duplicated head)."""
+    return list(scenario.turns) + [t for br in scenario.branches for t in br.turns]
+
+
+# --------------------------------------------------------------------------- #
 # Reply source — the Phase-1 / Phase-2 seam (§16.6)
 # --------------------------------------------------------------------------- #
 @dataclass
@@ -74,20 +106,80 @@ class ScriptedReplySource:
     def __init__(self, scenario: ConversationScenario) -> None:
         self._scenario = scenario
 
-    def _path(self, branch_id: str | None) -> list[ConversationTurn]:
-        if branch_id is None:
-            return self._scenario.turns
-        for br in self._scenario.branches:
-            if br.branch_id == branch_id:
-                head = [t for t in self._scenario.turns if t.turn <= br.from_turn]
-                return head + br.turns
-        raise KeyError(f"no branch {branch_id!r} in {self._scenario.conversation_id}")
-
     def next_reply(self, ctx: ReplyContext) -> str | None:
-        customer_turns = [t for t in self._path(ctx.branch_id) if t.speaker is Speaker.customer]
+        turns = path(self._scenario, ctx.branch_id)
+        customer_turns = [t for t in turns if t.speaker is Speaker.customer]
         if ctx.turn_index >= len(customer_turns):
             return None
         return customer_turns[ctx.turn_index].text
+
+
+# --------------------------------------------------------------------------- #
+# Evaluator — the OTHER half of the §16.6 Phase-2 seam
+# --------------------------------------------------------------------------- #
+@dataclass
+class Verdict:
+    passed: bool
+    reasons: list[str] = field(default_factory=list)
+
+
+@runtime_checkable
+class Evaluator(Protocol):
+    """Judges a finished transcript against a scenario's pinned expectations.
+
+    §16.6 Phase 2 is `generator -> LLM variations -> chatbot -> evaluator ->
+    pass/fail + metrics`. Phase 1's evaluator is exact-match on the pinned
+    `ConversationExpected`; Phase 2 can swap in a semantic/LLM judge behind this
+    same signature. Keep it stable.
+    """
+
+    def evaluate(
+        self,
+        scenario: ConversationScenario,
+        transcript: list[ConversationTurn],
+        expected: ConversationExpected,
+    ) -> Verdict: ...
+
+
+class ExactExpectationEvaluator:
+    """Phase-1 evaluator: deterministic checks against the pinned expectations.
+
+    Note this judges a *transcript* — what a real run produced. It does not
+    re-derive outcome from the scripted turns, so it works unchanged when the
+    replies come from an LLM source instead.
+    """
+
+    def evaluate(
+        self,
+        scenario: ConversationScenario,
+        transcript: list[ConversationTurn],
+        expected: ConversationExpected,
+    ) -> Verdict:
+        reasons: list[str] = []
+        delivered = " ".join(t.text for t in transcript if t.speaker is Speaker.bot)
+        final = next(
+            (t.text for t in reversed(transcript) if t.speaker is Speaker.bot), ""
+        )
+
+        for token in expected.delivered_excludes:
+            if token in delivered:
+                reasons.append(f"unverified token {token!r} was delivered")
+        for token in expected.superseded_tokens:
+            if token in final:
+                reasons.append(f"superseded token {token!r} survived into the final turn")
+
+        slots: dict[str, str] = {}
+        for t in transcript:
+            slots.update(t.slots)
+        for name in expected.required_slots:
+            if name not in slots:
+                reasons.append(f"required slot {name!r} was never filled")
+
+        bot_turns = sum(1 for t in transcript if t.speaker is Speaker.bot)
+        if bot_turns < expected.min_bot_turns:
+            reasons.append(f"{bot_turns} bot turns, expected >= {expected.min_bot_turns}")
+
+        return Verdict(passed=not reasons, reasons=reasons)
 
 
 # --------------------------------------------------------------------------- #
@@ -714,7 +806,7 @@ class IntentScenarioComposer:
                     expected=ConversationExpected(
                         outcome=ConversationOutcome.booking_created,
                         required_slots=["pickup", "vehicle_class"],
-                        delivered_excludes=[token_b],  # the superseded SUV quote
+                        superseded_tokens=[token_b],  # correct when said, then reverted
                         min_bot_turns=3,
                     ),
                 )
@@ -722,7 +814,7 @@ class IntentScenarioComposer:
             expected=ConversationExpected(
                 outcome=ConversationOutcome.booking_created,
                 required_slots=["pickup", "vehicle_class", "pickup_at", "return_at"],
-                delivered_excludes=[token_a],  # the superseded Heathrow Economy quote
+                superseded_tokens=[token_a],  # correct when said, then changed
                 min_bot_turns=3,
             ),
         )
@@ -734,8 +826,7 @@ def final_slots(scenario: ConversationScenario, branch_id: str | None = None) ->
     This is the rule M08/M12 must implement for CV-17: a requirement change
     *replaces* a slot rather than adding a second value for it.
     """
-    turns = ScriptedReplySource(scenario)._path(branch_id)
     slots: dict[str, str] = {}
-    for t in turns:
+    for t in path(scenario, branch_id):
         slots.update(t.slots)
     return slots

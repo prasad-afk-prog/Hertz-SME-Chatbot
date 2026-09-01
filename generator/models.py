@@ -565,7 +565,19 @@ class ConversationExpected(BaseModel):
     required_slots: list[str] = Field(default_factory=list)
     # every claim on a bot turn must have passed M10 before delivery
     all_claims_verified: bool = True
+
+    # NOTE these two are different assertions — do not merge them.
+    #
+    # delivered_excludes: the token was WRONG against live data. M10 must
+    #   correct or strip it, so it must never appear in ANY delivered turn.
+    #   (Same meaning as Expected.delivered_excludes on the proactive side.)
+    #
+    # superseded_tokens: the token was CORRECT when said, and was legitimately
+    #   delivered — then the customer changed a requirement. It must not appear
+    #   in the FINAL confirmation or be carried into the booking. Asserting the
+    #   stronger "never delivered" rule here would be wrong.
     delivered_excludes: list[str] = Field(default_factory=list)
+    superseded_tokens: list[str] = Field(default_factory=list)
     min_bot_turns: int = 1
 
 

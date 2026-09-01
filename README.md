@@ -23,7 +23,7 @@ drives the correct outcomes **before the real M02–M14 services exist**.
 
 ```bash
 pip install -r requirements-dev.txt          # pydantic, pyyaml, pytest
-python -m pytest                              # 66 tests, all green
+python -m pytest                              # 73 tests, all green
 python -m generator build --seed 42 --tier golden --out test_data
 python -m generator build --seed 42 --tier volume --customers 1000 --out test_data
 ```
@@ -41,7 +41,7 @@ generator/        the generator (pure Python + pydantic)
   sessions.py     SessionSimulator — Tier-B volume driver
   scenarios.py    ScenarioComposer — 7 golden scenarios w/ pinned expectations
   intents.py      IntentScenarioComposer — 17 scripted conversation trees (inbound),
-                  + the ReplySource protocol (Phase-1 scripted / Phase-2 LLM)
+                  + ReplySource & Evaluator protocols (Phase-1 scripted / Phase-2 LLM)
   reference.py    executable spec of the trust-critical decisions (M05/M09/M10/M12)
   fixtures.py     default triggers + handoff routing rules (M13)
   pipeline.py     build() + writers (JSONL/JSON/YAML)
@@ -51,7 +51,8 @@ mocks/            external systems, all reading the SAME world
   llm_provider.py deterministic LLM fixtures + timeout mode (M09)
   hs103.py        delivery + inbound replies (M11)
   support_queue.py handoff dispatch (M07)
-tests/            pytest suite (contracts, world, patterns, golden, verification, invariants, business)
+tests/            pytest suite (contracts, world, patterns, golden, verification,
+                  invariants, business, conversation intents)
 ```
 
 ### Generated files (`test_data/`)

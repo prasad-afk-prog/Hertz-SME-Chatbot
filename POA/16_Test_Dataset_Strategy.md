@@ -518,9 +518,18 @@ Phase-2 generator varies wording, tone, typos, incomplete info, ambiguity, requi
 frustration and multi-turn context while preserving intent.
 → *Status:* **DONE (S3, 2026-09-01).** `generator/intents.py` ships the scripted tree format
 (`ConversationScenario` = turns + branches + pinned `ConversationExpected`), all 17 §16.4 intents,
-and the Phase-2 seam: the customer-reply source sits behind the `ReplySource` protocol
-(`next_reply(ctx) -> str | None`), with `ScriptedReplySource` as the Phase-1 implementation. Trees
-are written to `test_data/conversations/`; assertions live in `tests/test_conversation_intents.py`.
+and **both halves** of the Phase-2 seam:
+- *generator side* — `ReplySource` protocol (`next_reply(ctx) -> str | None`), Phase-1 impl
+  `ScriptedReplySource`; an LLM source drops in without touching scenarios or runner.
+- *evaluator side* — `Evaluator` protocol (`evaluate(scenario, transcript, expected) -> Verdict`),
+  Phase-1 impl `ExactExpectationEvaluator`. It judges a **transcript**, not the script, so it works
+  unchanged when replies come from an LLM.
+
+Two distinct assertions are pinned per path and must not be conflated:
+`delivered_excludes` (claim was **wrong** vs. live data → M10 strips it → must never be delivered)
+and `superseded_tokens` (claim was **correct** when said, then obsoleted by a requirement change →
+must not survive into the final confirmation). Trees are written to `test_data/conversations/`;
+assertions live in `tests/test_conversation_intents.py`.
 
 ### 16.7 Keep configurable (overall recommendation)
 Proceed with the above as the initial spec, but keep these **8 components configurable** so

@@ -40,7 +40,20 @@ tracks, so this gets cleared first, split by file to stay collision-free:
 | S6 | Future-client-compat layer — repository interface + `field_map.yaml` + lenient DTO | new `generator/repository.py` | Shagun |
 
 S1/S2/S5 and S3/S4/S6 are chosen so the two people don't edit the same file.
-`generator/models.py` is the exception — see §4 for the rule.
+
+**Three exceptions, stated plainly rather than discovered in a conflict:**
+
+- **`generator/models.py`** — both halves need it. S1's 12 vehicle classes and
+  city/suburban stations touch `VehicleCategory`/`LocationType`; S2's
+  late-return/no-show/fuel charges need fee fields; S3 already added the
+  `Intent`/`Conversation*` block. Rule in §4: **announce, don't just push**.
+  Mitigation that has worked so far: append one *bounded, contiguous* block at
+  the end of the relevant section rather than editing throughout — git merges
+  those cleanly even when both people go in the same day.
+- **`generator/pipeline.py`** — both halves add writers for their new output.
+  Same rule: keep the diff to contiguous appended lines.
+- **`tests/conftest.py`** — keep new fixtures in your own test module unless a
+  fixture is genuinely shared.
 
 Service-code tracks (§3) start once Sprint 0 is merged, or earlier for whoever
 finishes their half first.
