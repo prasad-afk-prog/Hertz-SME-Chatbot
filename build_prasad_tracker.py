@@ -124,9 +124,21 @@ TASKS = [
      "green, ruff clean. Commit d8fc10b (pushed track-a, PR #1)"),
 
     ("A6", "Frequency Cap & Precedence Engine",
-     "POA/05", "Track A", "Not started", "", "", "",
-     "NEXT. Build before A5 — the Trigger Engine depends on it. Depends on A2. "
-     "reference.would_fire is the executable spec to delegate to."),
+     "POA/05", "Track A", "In progress", "2026-09-01", "",
+     "Core done + tested. services/event_pipeline/frequency/: Postgres engagement ledger (source of "
+     "truth; only reserved/confirmed count, rolled_back ignored), sliding-window caps that DELEGATE "
+     "to reference.would_fire (so the service and the invariant suite test the same rule), per-"
+     "customer global cap + ISO-8601 cooldown, deterministic precedence (weight -> match specificity "
+     "-> most-recent signal -> lowest id, order-independent), atomic reserve under a per-customer "
+     "lock (concurrency test: 10 threads, cap 1 -> exactly 1 fires). reserve->confirm/rollback so a "
+     "failed M08 send frees the slot instead of burning the cap. Every suppression carries a reason "
+     "+ per-trigger losers for M14. CROSS-TRACK: A6->M08 contract (MatchCandidate/EngagementDecision/"
+     "SuppressionReason) added to generator/models.py — reconcile with Shagun's local §5 handshake. "
+     "Deferred (POA/05 §11): Redis counters, reservation-TTL sweep, M13 cap config. No HTTP surface "
+     "(library called by A5).",
+     "services/event_pipeline/frequency/{tables,ledger,engine,precedence,lock,bootstrap}.py, "
+     "generator/models.py (contract), POA/05 §11; tests/test_frequency_precedence.py (11) — 134 "
+     "total green, ruff clean. Commit 7a5a0f8 (PR #1)"),
 
     ("A4", "Event Ingestion API (FastAPI)",
      "POA/02", "Track A", "In progress", "2026-09-01", "",
@@ -146,8 +158,10 @@ TASKS = [
 
     ("A5", "Trigger Evaluation Engine",
      "POA/04", "Track A", "Not started", "", "", "",
-     "Depends on A2, A6. Code against generator/fixtures.py trigger/config defaults until B1 ships "
-     "persistence. 'Fire' decision -> conversation start is a Pydantic message, not a call (§5)."),
+     "NEXT. Depends on A2, A6 (both done). Consumes the Redis stream (events:in / group "
+     "trigger-eval), matches triggers, hands MatchCandidates to A6's reserve(), and emits the "
+     "'fire' decision as a Pydantic message (§5). Code against generator/fixtures.py trigger "
+     "defaults until B1 ships persistence."),
 
     ("A3", "Customer Journey & Behavioural Event Capture (SDK / contract)",
      "POA/01", "Track A", "Not started", "", "", "",
@@ -267,6 +281,18 @@ LOG = [
      "endpoint does per-item validation for partial success. Added an injected-store path to "
      "build_app for tests and an end-to-end test proving API->store->outbox->relay->stream.",
      "11 new tests, 123 total green; ruff clean", "ee06657 (PR #1)"),
+
+    ("2026-09-01", "A6",
+     "Built the Frequency Cap & Precedence engine — the gate A5 calls before firing. Same "
+     "delegate-to-the-spec discipline as A2/A4: cap accounting hands ledger timestamps to "
+     "reference.would_fire, the exact sliding-window rule test_invariants already asserts, so the "
+     "service can't quietly diverge from the spec. Precedence is deterministic and order-independent "
+     "(weight -> specificity -> recency -> id). The judgement call was the reserve->confirm/rollback "
+     "handshake: a reserved slot is only finalised when M08 delivers, and rolled back on failure, so "
+     "a failed send doesn't burn a customer's cap — the cross-track contract I put in "
+     "generator/models.py to reconcile with Shagun's local §5. Wrote the concurrency invariant test "
+     "POA/05 §6 asks for (10 threads, cap 1 -> exactly one fires) using a per-customer lock seam.",
+     "11 new tests, 134 total green; ruff clean", "7a5a0f8 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #
