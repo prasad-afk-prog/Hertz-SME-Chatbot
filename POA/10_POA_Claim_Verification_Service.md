@@ -1,7 +1,58 @@
 # POA — Claim Verification Service
 
-**Module ID:** M10 | **Flow stage:** 3 | **Flow nodes:** AA, AB, AC | **Status:** Draft
+**Module ID:** M10 | **Flow stage:** 3 | **Flow nodes:** AA, AB, AC
+**Status:** **Phase-1 implementation landed 2026-09-01** (Shagun, Track B) — see §11
 **Depends on:** live Booking API | **Called by:** M08/M12 | **Feeds:** M11 (verified response)
+
+---
+
+## 11. Implementation status (2026-09-01)
+
+Code: `services/conversation/claim_verification/` — `detection.py`, `client.py`, `service.py`.
+Tests: `tests/test_claim_verification_service.py` (23 tests; 144 in the suite, all green).
+
+> **Layout caveat:** the `services/…` tree follows the assumption recorded in POA/18 §8.2, which
+> Prasad has not yet confirmed. The tree is deliberately shallow so a rename is one `git mv`.
+
+**Of the seven §5 tasks:**
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Claim contract with M09 (structured tagging) | ✅ `TaggedClaimDetector` — the primary path |
+| 2 | Fallback pattern detector | ✅ shipped, and **known-incomplete by design** (see below) |
+| 3 | Booking API client + auth + circuit breaker | ◐ protocol + breaker + timeout done; **auth and the real HTTP client deferred** — nothing to build against until §10.1 is answered |
+| 4 | Verification + tolerance rules | ◐ tolerance is a configurable `Decimal` defaulting to `0.01`; the *policy* awaits §10.2 |
+| 5 | Resolution / rewrite policy | ✅ delegates to `generator.reference.apply_verification` |
+| 6 | Short-TTL cache | ✅ keyed on (kind, location, class, **date**), injected clock |
+| 7 | Verification logging → M14 | ✅ `VerificationRecord` per claim |
+
+**Design decisions worth carrying forward:**
+
+- **Resolution is delegated, not reimplemented.** `reference.apply_verification` is the executable
+  spec, and `test_invariants.py` / `test_golden_scenarios.py` already assert against it. A second
+  copy in the service would mean those suites stopped covering what ships. A test pins that the
+  service and the reference agree.
+- **The fallback detector's gaps are pinned by test**, not waved away — it misses
+  words-not-digits ("forty-two pounds") and amounts without a currency symbol. §8's first risk is
+  detector brittleness, and a fallback that quietly under-detects is worse than none because it
+  looks like coverage. This is why tagged claims are primary.
+- **Outage vs no-data are distinguished in the log** (`FailureKind`). Both are UNVERIFIABLE to the
+  customer, but M14 needs to tell a broken dependency from a bad lookup. `VerifyStatus` was **not**
+  widened — it is the shared contract in `models.py` that `apply_verification` branches on.
+- **A bad lookup does not trip the breaker.** Counting `no_data` as failure would open the circuit
+  on healthy infrastructure.
+- **Failures are never cached.** A cached outage would poison verification for the whole TTL even
+  after the API recovered.
+- **A draft quoting money we cannot even look up is refused, not delivered** (`blocked=True`).
+- **The §3.3 guardrail counts token occurrences rather than testing containment.** A correction may
+  legitimately contain the token it replaced — "available" → "not currently available" — and a
+  naive `token in delivered` check flags a correct rewrite as a failure. This was caught by its own
+  test during implementation.
+
+**Still open** — all three §10 questions are unanswered and block the remaining work: booking-API
+endpoints/SLA (§10.1) gates the real client; tolerance policy (§10.2) gates rounding/"from £X"
+handling; §10.3 is answered in practice — M09 *will* emit structured tags, since `LLMResponse`
+already carries `claims`.
 
 ---
 

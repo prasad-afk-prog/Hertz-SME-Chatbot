@@ -23,7 +23,7 @@ drives the correct outcomes **before the real M02–M14 services exist**.
 
 ```bash
 pip install -r requirements-dev.txt          # pydantic, pyyaml, pytest
-python -m pytest                              # 121 tests, all green
+python -m pytest                              # 144 tests, all green
 python -m generator build --seed 42 --tier golden --out test_data
 python -m generator build --seed 42 --tier volume --customers 1000 --out test_data
 ```
@@ -55,8 +55,10 @@ mocks/            external systems, all reading the SAME world
   llm_provider.py deterministic LLM fixtures + timeout mode (M09)
   hs103.py        delivery + inbound replies (M11)
   support_queue.py handoff dispatch (M07)
+services/         the real services (first module landed)
+  conversation/claim_verification/   M10 - detection, booking-API edge, resolution
 tests/            pytest suite (contracts, world, patterns, golden, verification,
-                  invariants, business, conversation intents)
+                  invariants, business, conversation intents, PII, repository, M10)
 ```
 
 ### Generated files (`test_data/`)
@@ -99,6 +101,7 @@ the mock returns the world's true £52.21, and the verifier must correct/strip i
 | `test_golden_scenarios.py` | every branch (W/AA/O/AE/AH) drives its pinned expected outcome |
 | `test_invariants.py` | frequency cap never exceeded over volume; **no unverified claim ever delivered** |
 | `test_business_entities.py` | v0.2 companies/plans/invoices/catalogues are schema-valid & referentially consistent; booking lifecycle exercised; totals derived not flat |
+| `test_claim_verification_service.py` | **M10 service**: correct claims pass, wrong are corrected, outage/timeout strip the claim while still delivering; the red-team test proves no unverified claim survives any branch; cache keyed on date and never caching failures; breaker opens on outage but not on a bad lookup |
 | `test_repository_compat.py` | S6: the repository agrees with the world on **every** rate/availability key; an unrelated implementation satisfies the same protocol; coercion renames/maps/drops **and reports**; the strict models are still strict; a typo'd enum target in `field_map.yaml` fails at load |
 | `test_pii_redaction.py` | S4: synthetic PII is provably fake (cards fail Luhn, emails RFC 2606, phones Ofcom drama block, IPs RFC 5737); spans are exact; redaction removes all PII **and nothing else**; the PII field marking still matches the models |
 | `test_conversation_intents.py` | all 17 POA/16 §16.4 intents covered; conversation claims grounded in the world; wrong quotes differ from live data and are excluded; mid-conversation requirement changes override slots; the reply source is swappable (§16.6 Phase-2 seam) |

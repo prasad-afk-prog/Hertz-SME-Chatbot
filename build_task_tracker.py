@@ -137,8 +137,28 @@ TASKS = [
      "POA/09", "Track B", "Not started", "", "", "", ""),
 
     ("B4", "Claim Verification Service",
-     "POA/10", "Track B", "Not started", "", "", "",
-     "booking-API mock already built — ready to start any time."),
+     "POA/10", "Track B", "DONE", "2026-09-01", "2026-09-01",
+     "First real service module in the project. Full AA->AB->AC path: detection, booking-API edge "
+     "(timeout, circuit breaker, short-TTL cache), resolution and audit logging. Key decision: "
+     "resolution DELEGATES to reference.apply_verification rather than reimplementing it — that "
+     "function is the executable spec and test_invariants/test_golden_scenarios already assert "
+     "against it, so a second copy would mean those suites stopped covering what actually ships; a "
+     "test pins that service and reference agree. Tagged claims are the primary detection path "
+     "(POA/10 §3.1) with a pattern fallback whose GAPS ARE PINNED BY TEST (misses 'forty-two "
+     "pounds' and unsymboled amounts) — §8's first risk is detector brittleness and a fallback "
+     "that quietly under-detects is worse than none. Outage vs no-data are distinguished in the "
+     "log via FailureKind without widening the shared VerifyStatus enum; a bad lookup does not "
+     "trip the breaker (would open the circuit on healthy infra); failures are never cached (a "
+     "cached outage would poison the whole TTL). A draft quoting money with no verifiable context "
+     "is refused rather than delivered. BUG CAUGHT BY TEST: the §3.3 guardrail used substring "
+     "containment, but correcting 'available' -> 'not currently available' means the replacement "
+     "CONTAINS the token — flagging a correct rewrite as a failure. Now counts occurrences. "
+     "Scoped honestly in POA/10 §11: 5 of 7 §5 tasks done; real HTTP client + auth deferred "
+     "pending the §10.1 endpoint answers, tolerance policy pending §10.2.",
+     "services/conversation/claim_verification/{detection,client,service}.py, "
+     "tests/test_claim_verification_service.py (23 tests) — 144 total green. "
+     "NOTE: services/ layout is POA/18's unconfirmed assumption; tree kept shallow so a rename is "
+     "one git mv. Local only, not pushed."),
 
     ("B5", "Chatbot UI Integration (HS-103) + admin UI",
      "POA/11", "Track B", "Not started", "", "", "",
@@ -241,6 +261,19 @@ LOG = [
      "Enum), which matches nothing for optional enum fields, so it had been validating zero "
      "value-maps.",
      "22 new tests, 121 total green; generator/repository.py + field_map.yaml", "local only"),
+
+    ("2026-09-01", "B4",
+     "Built M10 Claim Verification — the first real service module in the project, and the "
+     "system's core trust guarantee. Biggest decision was NOT writing code: resolution delegates "
+     "to reference.apply_verification, so the existing invariant and golden-scenario suites keep "
+     "covering the shipped path instead of a divergent copy. Wrote the red-team test POA/10 §7 "
+     "asks for — it tries to get an unverified price through every branch (correct/wrong/outage/"
+     "timeout) and asserts none survives. A test caught a real bug in my own guardrail: it used "
+     "substring containment, but correcting 'available' to 'not currently available' means the "
+     "replacement contains the original token, so a correct rewrite was reported as a failure. "
+     "Now counts occurrences. Scoped POA/10 §11 honestly — 5 of 7 tasks done, the HTTP client and "
+     "tolerance policy genuinely blocked on the §10 client questions.",
+     "23 new tests, 144 total green; first services/ module", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #
