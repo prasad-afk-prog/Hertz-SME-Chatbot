@@ -50,6 +50,7 @@ from .client import (
     TTLCache,
 )
 from .detection import ClaimDetector, TaggedClaimDetector, mentions_money
+from .tolerance import DEFAULT_POLICY, TolerancePolicy
 
 
 class FailureKind(str, Enum):
@@ -73,6 +74,8 @@ class VerificationRecord:
     actual: Decimal | bool | None = None
     correction: str | None = None
     cache_hit: bool = False
+    # A verification outcome is only meaningful alongside the rule that produced it.
+    tolerance_rule: str | None = None
 
     @property
     def was_corrected(self) -> bool:
@@ -102,7 +105,8 @@ class ClaimVerificationService:
         client: BookingAPIClient,
         detector: ClaimDetector | None = None,
         *,
-        tolerance: Decimal | str = "0.01",
+        tolerance: Decimal | str | None = None,
+        tolerance_policy: TolerancePolicy | None = None,
         cache_ttl_s: float = 30.0,
         breaker_threshold: int = 3,
         breaker_cooldown_s: float = 30.0,
@@ -110,7 +114,14 @@ class ClaimVerificationService:
     ) -> None:
         self.client = client
         self.detector = detector or TaggedClaimDetector()
-        self.tolerance = Decimal(tolerance)
+        # A bare `tolerance=` still works (absolute mode); `tolerance_policy=`
+        # selects a mode once POA/10 §10.2 is answered.
+        if tolerance_policy is not None:
+            self.tolerance_policy = tolerance_policy
+        elif tolerance is not None:
+            self.tolerance_policy = TolerancePolicy(absolute=Decimal(tolerance))
+        else:
+            self.tolerance_policy = DEFAULT_POLICY
         self.cache = TTLCache(ttl_s=cache_ttl_s, clock=clock)
         self.breaker = CircuitBreaker(
             threshold=breaker_threshold, cooldown_s=breaker_cooldown_s, clock=clock
@@ -154,7 +165,9 @@ class ClaimVerificationService:
     def _compare(self, claim: BookingClaim, actual) -> VerifyResult:
         if claim.kind in (ClaimKind.price, ClaimKind.rate):
             actual_price: Decimal = actual
-            if claim.quoted_price is not None and abs(actual_price - claim.quoted_price) <= self.tolerance:
+            if claim.quoted_price is not None and self.tolerance_policy.accepts(
+                claim.quoted_price, actual_price
+            ):
                 return VerifyResult(status=VerifyStatus.ok, correct_price=actual_price)
             return VerifyResult(
                 status=VerifyStatus.wrong,
@@ -206,6 +219,7 @@ class ClaimVerificationService:
                     actual=result.correct_price if result.correct_price is not None else result.correct_available,
                     correction=result.correct_token,
                     cache_hit=cache_hit,
+                    tolerance_rule=self.tolerance_policy.describe(),
                 )
             )
 

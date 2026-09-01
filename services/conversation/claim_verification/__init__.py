@@ -20,6 +20,20 @@ from .client import (
     NoDataForKey,
     TTLCache,
 )
+from .http_client import (
+    APIKeyAuth,
+    BearerAuth,
+    BookingAPIConfig,
+    BookingAPIEndpoints,
+    HMACAuth,
+    HTTPBookingAPIClient,
+    HTTPResponse,
+    NoAuth,
+    Transport,
+    UrllibTransport,
+    auth_from_env,
+)
+from .tolerance import DEFAULT_POLICY, FROM_PRICE_POLICY, ToleranceMode, TolerancePolicy
 from .detection import (
     ClaimDetector,
     PatternClaimDetector,
@@ -34,6 +48,21 @@ from .service import (
 )
 
 __all__ = [
+    "APIKeyAuth",
+    "BearerAuth",
+    "BookingAPIConfig",
+    "BookingAPIEndpoints",
+    "DEFAULT_POLICY",
+    "FROM_PRICE_POLICY",
+    "HMACAuth",
+    "HTTPBookingAPIClient",
+    "HTTPResponse",
+    "NoAuth",
+    "ToleranceMode",
+    "TolerancePolicy",
+    "Transport",
+    "UrllibTransport",
+    "auth_from_env",
     "BookingAPIClient",
     "BookingAPIError",
     "BookingAPITimeout",

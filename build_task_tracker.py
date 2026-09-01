@@ -134,8 +134,21 @@ TASKS = [
      "POA/08", "Track B", "Not started", "", "", "", ""),
 
     ("B3", "LLM Integration & Fallback Service",
-     "POA/09", "Track B", "DONE", "2026-09-01", "2026-09-01",
-     "Full Y->W->X path: provider adapter, availability/confidence gate, and the localised "
+     "POA/09", "Track B", "DONE (7/7)", "2026-09-01", "2026-09-01",
+     "ALL SEVEN §5 TASKS DONE. Real AnthropicProvider on claude-opus-5: claims come back as "
+     "STRUCTURED OUTPUT via output_config.format rather than parsed from prose, which realises "
+     "the M09->M10 contract POA/10 §3.1 recommended and gives M10's exact detection path real "
+     "input. Answered §10.2 in the process: the API returns NO numeric confidence, so the schema "
+     "asks the model to self-report one and the gate stays conservative because a self-report is "
+     "weaker than a logprob. Runs at effort=low with small max_tokens since generation is inline "
+     "before delivery; left thinking adaptive rather than disabling it, which has documented "
+     "failure modes on Opus 5. A claim whose token is not in the text, or lacking route context, "
+     "is DROPPED — an unverifiable tag looks like coverage while M10 has nothing to address. "
+     "Malformed model output degrades to an empty draft (->fallback) rather than raising. Added "
+     "BudgetGuard: three limits that fail differently (session tokens, customer-daily tokens, "
+     "global daily SPEND in money); exceeding one returns the same safe fallback as an outage, "
+     "never an error. Prices are config not constants — a stale rate silently under-reports. "
+     "Original build: full Y->W->X path: provider adapter, availability/confidence gate, and the localised "
      "fallback catalogue. Same delegation principle as M10 — the W threshold calls "
      "reference.decide_llm, which GS-06 already asserts against, so the golden scenario keeps "
      "covering what ships; the refusal/off-scope/length heuristics layer around it rather than "
@@ -153,12 +166,24 @@ TASKS = [
      "worse than a documented gap).",
      "services/conversation/llm/{provider,fallback,service}.py, services/common/resilience.py, "
      "tests/test_llm_fallback_service.py (33 tests) — 177 total green. "
-     "5 of 7 §5 tasks done; Anthropic adapter blocked on §10.1, budgets need Redis/M15. "
+     "NOW 7/7. Added the real AnthropicProvider on claude-opus-5 and the BudgetGuard. "
      "Local only, not pushed."),
 
     ("B4", "Claim Verification Service",
-     "POA/10", "Track B", "DONE", "2026-09-01", "2026-09-01",
-     "First real service module in the project. Full AA->AB->AC path: detection, booking-API edge "
+     "POA/10", "Track B", "DONE (7/7)", "2026-09-01", "2026-09-01",
+     "ALL SEVEN §5 TASKS DONE. Added HTTPBookingAPIClient with bearer/API-key/HMAC auth read "
+     "from the environment, never literals, and __repr__ overridden on every auth type so a "
+     "config in a stack trace cannot print the secret. §10.1 is still open so the endpoint shape "
+     "is an explicit assumption confined to BookingAPIEndpoints plus two parse methods — a test "
+     "proves a totally different endpoint shape works without touching the client. Transport is "
+     "injected (stdlib urllib) so 500s/timeouts/malformed bodies are tested with no socket and "
+     "no sleeping. Key asymmetry: a malformed 200 is an OUTAGE (counts to the breaker), a 404 is "
+     "a BAD LOOKUP (does not) — different operational facts. Added TolerancePolicy with five "
+     "modes so answering §10.2 is a config change; at_least ('from £X') is the one easy to get "
+     "backwards — it holds when the live price is AT OR BELOW the quote and fails when higher, "
+     "because a customer quoted 'from £42' and charged £55 was misled. Default stays strict: too "
+     "tight corrects a correct price (harmless), too loose ships a wrong one (the whole failure "
+     "mode). Every VerificationRecord now carries tolerance_rule. Original build: First real service module in the project. Full AA->AB->AC path: detection, booking-API edge "
      "(timeout, circuit breaker, short-TTL cache), resolution and audit logging. Key decision: "
      "resolution DELEGATES to reference.apply_verification rather than reimplementing it — that "
      "function is the executable spec and test_invariants/test_golden_scenarios already assert "
@@ -181,8 +206,22 @@ TASKS = [
      "one git mv. Local only, not pushed."),
 
     ("B5", "Chatbot UI Integration (HS-103) + admin UI",
-     "POA/11", "Track B", "Not started", "", "", "",
-     "HS-103 mock already built."),
+     "POA/11", "Track B", "DONE", "2026-09-01", "2026-09-01",
+     "All 7 §5 tasks implemented (task 1 is a conversation with the HS-103 team, not code). "
+     "Transport is a protocol because §10.1 is open — §8's mitigation for 'HS-103 capabilities "
+     "unknown' is adapter abstraction, so presence, anti-nag, correlation, receipts and retry all "
+     "sit ABOVE the transport and do not move when the real surface lands. Anti-nag here is "
+     "deliberately NARROWER than M05's frequency cap: re-implementing that would double-count and "
+     "silently halve the configured cap, so this only blocks stacking a second proactive message "
+     "on an unacknowledged conversation, and never blocks replies inside a live exchange (which "
+     "would break the M12 loop). BUG CAUGHT BY TEST: I conflated delivery_ref (per MESSAGE) with "
+     "thread_id (per CONVERSATION), so a second message tried to rebind the conversation — that "
+     "would have misrouted every subsequent reply. Inbound is idempotent and never raises: a "
+     "webhook delivering twice is normal and a 500 back just makes HS-103 retry the same "
+     "unusable event. A failed delivery binds no correlation. Losing the button must not lose "
+     "the message.",
+     "services/conversation/delivery/service.py, tests/test_delivery_service.py (23 tests) — "
+     "252 total green. Local only, not pushed."),
 
     ("B6", "Customer Response & Multi-turn Conversation Manager",
      "POA/12", "Track B", "Not started", "", "", "",
@@ -306,6 +345,19 @@ LOG = [
      "POA/09 §11 rather than quietly diverging from the spec: sync instead of async, and jitter "
      "deferred.",
      "33 new tests, 177 total green; services/conversation/llm/", "local only"),
+
+    ("2026-09-01", "B3 / B4 / B5",
+     "Took M09 and M10 from 5/7 to 7/7 and shipped M11. Loaded the claude-api reference before "
+     "writing the Anthropic adapter rather than working from memory — worth it: the current API "
+     "differs from what I'd have written (adaptive thinking, output_config.effort, no "
+     "budget_tokens, structured outputs via output_config.format). The structured-output work is "
+     "the real win: M09 now emits tagged claims, which is the contract POA/10 §3.1 asked for and "
+     "makes M10's exact-detection path real instead of aspirational. For the two genuinely "
+     "product-owned questions (§10.1 endpoints, §10.2 tolerance) I implemented every plausible "
+     "answer behind config seams, so the decision no longer blocks code. Two bugs caught by tests I "
+     "wrote for the purpose: the tolerance at_least direction, and conflating delivery_ref with "
+     "thread_id in M11 — the latter would have misrouted replies in production.",
+     "75 new tests, 252 total green; POA 09/10 at 7/7, POA 11 done", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #

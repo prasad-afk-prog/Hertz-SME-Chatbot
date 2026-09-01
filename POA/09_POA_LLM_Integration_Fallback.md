@@ -11,17 +11,46 @@
 Code: `services/conversation/llm/` — `provider.py`, `fallback.py`, `service.py`.
 Tests: `tests/test_llm_fallback_service.py` (33 tests; 177 in the suite, all green).
 
-**Of the seven §5 tasks:**
+**All seven §5 tasks are now implemented (2026-09-01):**
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Provider adapter interface + Anthropic implementation | ◐ `LLMProvider` protocol + `MockProviderAdapter` done; **Anthropic deferred** pending §10.1 |
-| 2 | Timeout / retry / circuit-breaker wrapper | ✅ `RetryingProvider`; **jitter deferred** (see below) |
-| 3 | Confidence / availability decision (W) + reason logging | ✅ delegates to `reference.decide_llm`, layered heuristics on top |
+| 1 | Provider adapter interface + Anthropic implementation | ✅ `AnthropicProvider` on `claude-opus-5` |
+| 2 | Timeout / retry / circuit-breaker wrapper | ✅ `RetryingProvider` (jitter deferred — see below) |
+| 3 | Confidence / availability decision (W) + reason logging | ✅ delegates to `reference.decide_llm` |
 | 4 | Fallback catalogue + localisation + renderer | ✅ 8 signals × 4 locales, claim-free by test |
 | 5 | Output guardrails / sanitisation | ✅ refusal, off-scope, length, safety flags |
-| 6 | Cost / latency telemetry | ◐ `Usage` per generation; **budgets/limits deferred** (need Redis + M15) |
+| 6 | Cost / latency telemetry + budgets | ✅ `BudgetGuard` — session / customer-daily / global spend |
 | 7 | Provider / model config surface | ✅ `LLMConfig` + `build_provider()` |
+
+### The Anthropic adapter (task 1)
+
+`services/conversation/llm/anthropic_provider.py`, on **`claude-opus-5`**.
+
+- **Claims arrive as structured output, not parsed from prose.** `output_config.format`
+  constrains the response to a schema carrying the message *and* its factual claims, so M10's
+  primary `TaggedClaimDetector` path always has exact input. This is the M09/M10 contract from
+  POA/10 §3.1 realised in code, and it removes the reason M10's regex fallback existed.
+- **§10.2 answered: there is no native numeric confidence.** The schema asks the model to
+  self-report one. A self-report is weaker than a logprob, so the gate stays conservative and every
+  other heuristic still applies.
+- **Latency is the binding constraint** — generation is inline before delivery, so it runs at
+  `effort: "low"` with a small `max_tokens`. Thinking is left adaptive (the default on Opus 5);
+  explicitly disabling it on that model has documented failure modes, and low effort is the correct
+  lever.
+- A claim whose `text_token` is not in the text, or that lacks route context, is **dropped**. An
+  unverifiable tag is worse than none — it looks like coverage while M10 has nothing to address.
+- Malformed model output degrades to an empty draft (→ fallback) rather than raising: §1 says an
+  error never reaches the customer.
+- The system prompt is cached, and forbids inventing prices or soliciting personal data in chat.
+
+### Budgets (task 6)
+
+`BudgetGuard` enforces three limits that fail differently: per-session tokens (a runaway
+conversation), per-customer daily tokens (one account), and global daily **spend** in money.
+Exceeding one is not an error to the customer — it returns the same safe templated fallback as an
+outage. Prices are config, not constants: a stale hard-coded rate silently under-reports spend. The
+store is a protocol; Redis (§4) slots in behind three methods.
 
 ### Recorded deviations
 
@@ -62,12 +91,19 @@ it with the real provider, where it actually matters for thundering-herd.
   M09 needed the same breaker as M10. Two implementations would drift, and one
   would eventually be the wrong one.
 
-**Still open:** §10.1 (provider/model + hosting region for Hertz data residency)
-blocks the real adapter. §10.2 (is numeric confidence available?) — the code
-assumes it may be `None` and falls back conservatively, but the heuristics would
-be tuned differently given a real signal. §10.3 (streaming) is unaddressed;
-§10.4 (who owns fallback copy) matters before this copy goes near production —
-it is engineer-written placeholder text.
+**Open questions — current state:**
+
+- **§10.1 (provider/model + hosting region).** Implemented on `claude-opus-5`. `inference_geo` is
+  wired and unset: pin it the moment Hertz's data-residency answer lands. That is a config line,
+  not a code change.
+- **§10.2 (numeric confidence?)** — **answered: no.** The API returns no confidence score, so the
+  structured schema asks the model to self-report one. Documented above.
+- **§10.3 (streaming to HS-103)** — still open, and now M11's question as much as M09's. Not
+  implemented: these messages are one or two sentences, so streaming buys little and adds a
+  partial-delivery failure mode. Revisit if HS-103 wants it.
+- **§10.4 (who owns fallback copy)** — still open and now the most pressing. The catalogue is
+  **engineer-written placeholder text in four languages**; it is claim-free and safe, but it has
+  not been through marketing or a native speaker. It should not go in front of customers as-is.
 
 ---
 

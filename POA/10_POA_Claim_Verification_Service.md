@@ -14,17 +14,53 @@ Tests: `tests/test_claim_verification_service.py` (23 tests; 144 in the suite, a
 > **Layout caveat:** the `services/…` tree follows the assumption recorded in POA/18 §8.2, which
 > Prasad has not yet confirmed. The tree is deliberately shallow so a rename is one `git mv`.
 
-**Of the seven §5 tasks:**
+**All seven §5 tasks are now implemented (2026-09-01):**
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Claim contract with M09 (structured tagging) | ✅ `TaggedClaimDetector` — the primary path |
-| 2 | Fallback pattern detector | ✅ shipped, and **known-incomplete by design** (see below) |
-| 3 | Booking API client + auth + circuit breaker | ◐ protocol + breaker + timeout done; **auth and the real HTTP client deferred** — nothing to build against until §10.1 is answered |
-| 4 | Verification + tolerance rules | ◐ tolerance is a configurable `Decimal` defaulting to `0.01`; the *policy* awaits §10.2 |
-| 5 | Resolution / rewrite policy | ✅ delegates to `generator.reference.apply_verification` |
-| 6 | Short-TTL cache | ✅ keyed on (kind, location, class, **date**), injected clock |
-| 7 | Verification logging → M14 | ✅ `VerificationRecord` per claim |
+| 1 | Claim contract with M09 (structured tagging) | ✅ `TaggedClaimDetector`; M09 now emits the tags |
+| 2 | Fallback pattern detector | ✅ shipped, known-incomplete by design |
+| 3 | Booking API client + auth + circuit breaker | ✅ `HTTPBookingAPIClient` — bearer / API-key / HMAC |
+| 4 | Verification + tolerance rules | ✅ `TolerancePolicy` — five selectable modes |
+| 5 | Resolution / rewrite policy | ✅ delegates to `reference.apply_verification` |
+| 6 | Short-TTL cache | ✅ keyed on (kind, location, class, **date**) |
+| 7 | Verification logging → M14 | ✅ `VerificationRecord`, now carrying the tolerance rule |
+
+### The HTTP client (task 3)
+
+`services/conversation/claim_verification/http_client.py`.
+
+**§10.1 is still open, so the endpoint shape is an explicit assumption** confined to two seams —
+`BookingAPIEndpoints` (paths, query names, response fields) and the two parse methods. Adapting to
+the real contract is a config change plus two functions, not a rewrite; a test proves a completely
+different endpoint shape works without touching the client.
+
+Transport is injected, with a stdlib `UrllibTransport` behind it — no new dependency for a handful
+of GETs, and tests drive 500s, timeouts and malformed bodies through a stub with no socket and no
+sleeping. Every failure maps onto the three exceptions the service already handles, so the breaker
+and cache behave identically against the mock or a live API. Note the asymmetry: **a malformed 200
+is an outage** (it counts towards the breaker) while **a 404 is a bad lookup** (it does not) — a
+broken dependency and a missing key are different operational facts.
+
+**Auth covers all three plausible models** (§10.3 is open): bearer, API key, and HMAC request
+signing, selected from the environment and never taken as literals. `__repr__` is overridden on
+every auth type, because a config object in a stack trace would otherwise print the secret.
+
+### Tolerance policy (task 4)
+
+**§10.2 is a product decision that is still open.** Rather than leave a bare `Decimal`,
+`TolerancePolicy` implements the plausible policies as selectable modes — `exact`, `absolute`,
+`percentage`, `rounded`, `at_least` — so answering §10.2 becomes a config change.
+
+`at_least` is the one that is easy to get backwards. "From £42/day" promises the customer can have
+it *for* £42, so the claim holds when the live price is at or below that and **fails when the real
+price is higher**. A customer quoted "from £42" and charged £55 was misled; one charged £38 was not.
+
+The default stays deliberately strict (absolute, £0.01): a tolerance that is too tight corrects a
+correct price, which is harmless; one that is too loose lets a wrong price reach a customer, which
+is the failure this module exists to prevent. Every `VerificationRecord` now carries
+`tolerance_rule`, because a verification outcome is only meaningful next to the rule that produced
+it.
 
 **Design decisions worth carrying forward:**
 
@@ -49,10 +85,15 @@ Tests: `tests/test_claim_verification_service.py` (23 tests; 144 in the suite, a
   naive `token in delivered` check flags a correct rewrite as a failure. This was caught by its own
   test during implementation.
 
-**Still open** — all three §10 questions are unanswered and block the remaining work: booking-API
-endpoints/SLA (§10.1) gates the real client; tolerance policy (§10.2) gates rounding/"from £X"
-handling; §10.3 is answered in practice — M09 *will* emit structured tags, since `LLMResponse`
-already carries `claims`.
+**Open questions — current state:**
+
+- **§10.1 (endpoints / latency SLA)** — still unanswered, but no longer blocking. The client is
+  built against a documented assumption isolated in `BookingAPIEndpoints`; the real contract is a
+  config change. The 1s inline timeout is a placeholder for the real SLA.
+- **§10.2 (tolerance policy)** — still a product decision, but no longer blocking: all five modes
+  are implemented and selectable. Product picks one; nobody writes code.
+- **§10.3 (structured claim tags)** — **answered: yes.** M09's `AnthropicProvider` emits claims via
+  `output_config.format`, so the exact path is real rather than aspirational.
 
 ---
 

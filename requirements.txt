@@ -1,2 +1,5 @@
 pydantic>=2.5
 pyyaml>=6.0
+# M09 real provider (services/conversation/llm/anthropic_provider.py).
+# Lazily imported, so the generator and every other module run without it.
+anthropic>=0.86
