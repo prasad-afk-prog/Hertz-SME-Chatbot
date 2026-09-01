@@ -5,9 +5,9 @@ and merging every day. This file exists so neither person guesses what the
 other is doing, no module gets built twice, and merges at day-end are boring
 (no file-level collisions).
 
-**Status:** Draft v1 — 2026-08-31. Adjust the track assignment in §3 if you'd
-rather swap; the *shape* of the split, not who does which half, is the part
-that matters.
+**Status:** v1.1 — 2026-09-01. **Track ownership is CONFIRMED** — Prasad takes
+Track A, Shagun takes Track B (agreed 2026-09-01). Two items in §8 remain open:
+the git workflow (§6) and the service-code repo layout.
 
 ---
 
@@ -47,7 +47,7 @@ finishes their half first.
 
 ## 3. The two tracks
 
-### Track A — Event & Trigger Pipeline + Platform (owner: **Prasad**)
+### Track A — Event & Trigger Pipeline + Platform (owner: **Prasad** — confirmed)
 
 Rationale: Prasad built the foundational layer (`generator/`, `mocks/`,
 `tests/`, contract models, POA 16/17) — this track is the direct continuation:
@@ -66,7 +66,7 @@ turning the event/trigger side into real services.
 
 Code lives under: `services/event_pipeline/` (+ `services/platform/` for A1).
 
-### Track B — Conversation, Config & Reporting (owner: **Shagun**)
+### Track B — Conversation, Config & Reporting (owner: **Shagun** — confirmed)
 
 | Order | Module | POA file | Depends on |
 |---|---|---|---|
@@ -224,9 +224,9 @@ Issues or a Project board — outside git, so it has no merge semantics at all.
 
 ## 8. Open questions
 
-1. **Confirm track ownership** (§3) — swap wholesale if Prasad would rather
-   take Conversation/Config; the dependency-graph split is the important part,
-   not who does which half.
+1. ~~**Confirm track ownership** (§3).~~ **RESOLVED 2026-09-01** — Prasad takes
+   Track A (event/trigger pipeline + platform, POA 01–07 & 15), Shagun takes
+   Track B (conversation, config, reporting, POA 08–14).
 2. **Repo layout for service code.** No POA specifies one — `POA/16 §14`
    covers only `test_data/`/`generator/`/`mocks/`, and `POA/15` has no layout
    section. This document assumes `services/event_pipeline/`,
