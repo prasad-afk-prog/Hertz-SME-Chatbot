@@ -5,6 +5,7 @@ as an executable spec of those contracts.
 
 Covered here (pure functions over the contract models):
   * M05  frequency cap (sliding window)
+  * M08/M09  PII redaction before anything leaves for the LLM
   * M09  availability/confidence decision (use LLM vs fallback)
   * M10  claim resolution (correct / strip) once a VerifyResult is known
   * M12  terminal-state decision (no_engagement / converted / handed_off)
@@ -19,6 +20,7 @@ from .models import (
     FrequencyCap,
     LLMResponse,
     MessageKind,
+    PIISpan,
     TerminalState,
     VerifyResult,
     VerifyStatus,
@@ -39,6 +41,38 @@ def would_fire(prior_fire_times: list[datetime], now: datetime, cap: FrequencyCa
     window = parse_duration(cap.per)
     recent = [t for t in prior_fire_times if now - t < window]
     return len(recent) < cap.max
+
+
+# --------------------------------------------------------------------------- #
+# M08/M09 — PII redaction before the prompt leaves the boundary
+#
+# POA/15 §4: "minimise/redact what is sent to the LLM". This is the executable
+# spec of that rule. Offset-addressed, like M10's claim resolution: the caller
+# supplies exactly which substrings are PII, so redaction never has to guess.
+# A real service pairs this with a detector that produces the spans; getting the
+# detector right is a separate problem from applying the decision correctly.
+# --------------------------------------------------------------------------- #
+def redact(text: str, spans: list[PIISpan]) -> str:
+    """Replace each span with `[REDACTED:<kind>]`, leaving everything else intact.
+
+    Applied back-to-front so replacing one span cannot invalidate the offsets of
+    the ones before it. Overlapping spans are rejected rather than silently
+    producing mangled output.
+    """
+    ordered = sorted(spans, key=lambda s: s.start)
+    for a, b in zip(ordered, ordered[1:]):
+        if b.start < a.end:
+            raise ValueError(f"overlapping PII spans: {a} and {b}")
+
+    out = text
+    for span in reversed(ordered):
+        if text[span.start : span.end] != span.value:
+            raise ValueError(
+                f"span {span.kind.value} at {span.start}:{span.end} does not match "
+                f"{span.value!r} — the text and its spans have drifted apart"
+            )
+        out = out[: span.start] + f"[REDACTED:{span.kind.value}]" + out[span.end :]
+    return out
 
 
 # --------------------------------------------------------------------------- #

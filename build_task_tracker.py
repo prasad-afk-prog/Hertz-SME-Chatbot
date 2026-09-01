@@ -80,7 +80,25 @@ TASKS = [
      "2026-09-01; in the tree and green. Local only, not pushed."),
 
     ("S4", "PII redaction fixtures — obvious + embedded PII",
-     "POA/16 §16.5", "Sprint 0", "Not started", "", "", "", ""),
+     "POA/16 §16.5", "Sprint 0", "DONE", "2026-09-01", "2026-09-01",
+     "13 fixtures: 3 obvious (labelled/form-like), 7 embedded in natural conversational prose "
+     "(the hard case §16.5 calls out), 3 edge cases — punctuation-adjacent PII, two similar-shaped "
+     "identifiers that must not collapse into one pattern, and a PII-free negative control. All 12 "
+     "PIIKind values covered. Put redact() in reference.py with the other trust-critical decisions "
+     "rather than in pii.py, since redact-before-LLM is exactly that class of decision (M15 §4); "
+     "it is offset-addressed like M10's claim resolution, so it never regex-guesses, and it raises "
+     "on drifted or overlapping spans instead of mangling output. Spans are computed at build time "
+     "via .find() with a uniqueness assert — hand-counted offsets drift the moment anyone edits a "
+     "sentence. Every synthetic value is reserved BY SPECIFICATION and the tests assert the "
+     "property not the format (cards fail Luhn, emails RFC 2606/6761, phones Ofcom 07700 900xxx "
+     "drama block, IPs RFC 5737 TEST-NET-1), so a plausible real-looking value fails the suite. "
+     "Added the over-redaction guard — every fixture carries a `preserves` list, because 'no PII "
+     "survives' passes trivially for a redactor that destroys the whole message. PII_FIELDS marks "
+     "the PII-bearing model fields with NOT_PII recording deliberate exclusions; a test asserts "
+     "both still match the models, so the marking can't rot when Prasad's S1/S2 touch models.py.",
+     "generator/pii.py (new), reference.py, models.py, pipeline.py, cli.py, "
+     "tests/test_pii_redaction.py (26 tests) — 99 total green. "
+     "Output: test_data/fixtures/pii_redaction.json. Local only, not pushed."),
 
     ("S6", "Future-client-compat layer — repository interface, field_map.yaml, lenient DTO",
      "POA/16 §16 item 6", "Sprint 0", "Not started", "", "", "", ""),
@@ -180,6 +198,18 @@ LOG = [
      "came back independently and history stays readable. Restoring POA/18 also re-validated the "
      "'see POA/18 §4' pointer in generator/models.py, which was dangling in between.",
      "Working tree == b54edb8 (plus tracker improvements); 73 tests green", "local only"),
+
+    ("2026-09-01", "S4",
+     "Built the PII redaction fixture set — 13 fixtures across obvious / embedded / edge cases, "
+     "covering all 12 PII kinds, plus the PII_FIELDS data dictionary and reference.redact(). "
+     "Two decisions worth recording: redact() went in reference.py (not pii.py) because "
+     "redact-before-LLM is a trust-critical decision like M10's claim resolution and belongs where "
+     "a service author will look for it; and spans are computed at build time rather than "
+     "hand-counted, so editing a fixture sentence can't silently break its offsets. Scoped the "
+     "claim honestly in POA/16: this proves the redaction decision and the fixtures — 'no PII ever "
+     "reaches the LLM' is an M08/M09 acceptance test, since no orchestrator exists yet to build a "
+     "prompt.",
+     "26 new tests, 99 total green; test_data/fixtures/pii_redaction.json", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #

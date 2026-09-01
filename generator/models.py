@@ -604,6 +604,62 @@ class ConversationScenario(BaseModel):
     expected: ConversationExpected
 
 
+# --------------------------------------------------------------------------- #
+# PII redaction fixtures (POA/16 §16.5; M15 §4 is the source of truth)
+#
+# Every value in these fixtures is SYNTHETIC and drawn from a range that is
+# reserved or invalid by specification, so a fixture can never collide with a
+# real person's data. `generator/pii.py` builds them; `reference.redact()` is
+# the executable spec of the redact-before-LLM decision (M08/M09).
+# --------------------------------------------------------------------------- #
+class PIIKind(str, Enum):
+    full_name = "full_name"
+    email = "email"
+    phone = "phone"
+    address = "address"
+    driving_licence = "driving_licence"
+    passport = "passport"
+    date_of_birth = "date_of_birth"
+    payment_card = "payment_card"
+    booking_reference = "booking_reference"
+    loyalty_number = "loyalty_number"
+    vehicle_registration = "vehicle_registration"
+    ip_address = "ip_address"
+
+
+class PIICategory(str, Enum):
+    """How the PII sits in the text — both are mandated by §16.5."""
+    obvious = "obvious"      # a field dump / form-like paste
+    embedded = "embedded"    # sitting naturally inside a conversational message
+
+
+class PIISpan(BaseModel):
+    """An exact, offset-addressed occurrence of PII.
+
+    Offsets, not regexes: `text[start:end] == value` is asserted at build time,
+    so redaction is deterministic and never has to guess — the same discipline
+    as `BookingClaim.text_token`.
+    """
+    model_config = ConfigDict(extra="forbid")
+    kind: PIIKind
+    start: int
+    end: int
+    value: str
+
+
+class RedactionFixture(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    fixture_id: str
+    category: PIICategory
+    description: str
+    text: str                                    # the raw text, PII intact
+    spans: list[PIISpan]
+    redacted: str                                # expected output of redact()
+    # non-PII substrings that MUST survive redaction — guards over-redaction,
+    # which otherwise passes every "no PII remains" check trivially.
+    preserves: list[str] = Field(default_factory=list)
+
+
 class Dataset(BaseModel):
     """The full generated bundle."""
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -627,3 +683,5 @@ class Dataset(BaseModel):
     policies: list[Policy] = Field(default_factory=list)
     # S3 — scripted conversation trees (POA/16 §16.4/§16.6)
     conversations: list[ConversationScenario] = Field(default_factory=list)
+    # S4 — PII redaction fixtures (POA/16 §16.5)
+    redaction_fixtures: list[RedactionFixture] = Field(default_factory=list)

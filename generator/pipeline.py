@@ -13,6 +13,7 @@ from .config import GenConfig
 from .fixtures import default_routing_rules, default_triggers
 from .intents import IntentScenarioComposer
 from .models import Dataset
+from .pii import RedactionFixtureBuilder
 from .scenarios import ScenarioComposer
 from .volume import VolumeSampler
 from .world import WorldBuilder
@@ -22,6 +23,7 @@ def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
     world = WorldBuilder(cfg.seed).build()
     scenarios = ScenarioComposer(world).all()
     conversations = IntentScenarioComposer(world).all()
+    redaction_fixtures = RedactionFixtureBuilder().all()
     rate_plans = catalogue_rate_plans()
 
     companies: list = []
@@ -52,6 +54,7 @@ def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
         extras=world.extras,
         policies=world.policies,
         conversations=conversations,
+        redaction_fixtures=redaction_fixtures,
     )
 
 
@@ -73,7 +76,7 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
     """Write the dataset; returns the paths written."""
     written: list[Path] = []
     for sub in ("world", "master", "events/golden", "events/volume", "config", "scenarios", "expected",
-                "conversations"):
+                "conversations", "fixtures"):
         (out / sub).mkdir(parents=True, exist_ok=True)
 
     # world (always)
@@ -105,6 +108,10 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
             _dump_json(p, cv.model_dump(mode="json")); written.append(p)
             e = out / f"expected/{cv.conversation_id}.yaml"
             _dump_yaml(e, cv.expected.model_dump(mode="json")); written.append(e)
+        # PII redaction fixtures (S4 - POA/16 16.5)
+        pf = out / "fixtures/pii_redaction.json"
+        _dump_json(pf, [m.model_dump(mode="json") for m in ds.redaction_fixtures])
+        written.append(pf)
 
     # volume tier
     if tier in ("all", "volume"):

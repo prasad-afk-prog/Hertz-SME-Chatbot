@@ -502,9 +502,28 @@ directly identifying technical info (e.g. IP) if M15 covers it, and any free-tex
 personal data. **Synthetic/fake values only** — card, licence, passport numbers must never be real.
 For redaction tests, build fixtures with **both obvious PII and PII embedded naturally inside
 conversational messages**. **M15 remains the source of truth**; if it differs, follow M15.
-→ *Status:* current data is deliberately PII-light (no customer name/email; company `Contact` uses
-synthetic values). **Add** a redaction fixture set (obvious + embedded PII) and mark PII fields in
-the data dictionary.
+→ *Status:* **DONE (S4, 2026-09-01).** `generator/pii.py` ships 13 redaction fixtures — 3 obvious
+(labelled/form-like), 7 embedded in conversational prose, 3 edge cases (punctuation-adjacent,
+two similar-shaped identifiers, and a PII-free negative control). All 12 `PIIKind` values are
+covered. `PII_FIELDS` marks the PII-bearing model fields (`Contact.*`, `BookingDriver.name`,
+`Booking.reference_no`, `Company.account_no`), with `NOT_PII` recording the deliberate exclusions;
+a test asserts both still match the models, so the marking cannot rot.
+
+The redaction decision itself is `reference.redact(text, spans)`, alongside the other
+trust-critical decisions (M05/M09/M10/M12) — offset-addressed, so it never regex-guesses, and it
+raises rather than mangling on drifted or overlapping spans.
+
+**Synthetic values are reserved by specification**, and the tests assert the *property* rather than
+the format, so a plausible-looking real value fails the suite: cards are Luhn-**invalid** (every
+issuable card passes Luhn), emails sit on RFC 2606 / 6761 reserved domains, phones sit in Ofcom's
+`07700 900xxx` drama block, IPs are RFC 5737 TEST-NET-1. Over-redaction is tested explicitly via a
+`preserves` list on every fixture — "no PII survives" passes trivially for a redactor that destroys
+the message. Written to `test_data/fixtures/pii_redaction.json`; assertions in
+`tests/test_pii_redaction.py`.
+
+> *Scope note:* this proves the redaction **decision** and the fixtures. "No PII ever reaches the
+> LLM" end-to-end is an **M08/M09 acceptance test** — there is no orchestrator yet to assemble a
+> prompt, so it cannot honestly be claimed here.
 
 ### 16.6 Synthetic-conversation LLM vs scripted trees — RESOLVED
 *Q: LLM-generated replies later, or scripted trees now?*

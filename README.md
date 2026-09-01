@@ -23,7 +23,7 @@ drives the correct outcomes **before the real M02–M14 services exist**.
 
 ```bash
 pip install -r requirements-dev.txt          # pydantic, pyyaml, pytest
-python -m pytest                              # 73 tests, all green
+python -m pytest                              # 99 tests, all green
 python -m generator build --seed 42 --tier golden --out test_data
 python -m generator build --seed 42 --tier volume --customers 1000 --out test_data
 ```
@@ -42,7 +42,9 @@ generator/        the generator (pure Python + pydantic)
   scenarios.py    ScenarioComposer — 7 golden scenarios w/ pinned expectations
   intents.py      IntentScenarioComposer — 17 scripted conversation trees (inbound),
                   + ReplySource & Evaluator protocols (Phase-1 scripted / Phase-2 LLM)
-  reference.py    executable spec of the trust-critical decisions (M05/M09/M10/M12)
+  pii.py          PII redaction fixtures + the PII_FIELDS data dictionary (S4)
+  reference.py    executable spec of the trust-critical decisions
+                  (M05/M08-09 redaction/M09/M10/M12)
   fixtures.py     default triggers + handoff routing rules (M13)
   pipeline.py     build() + writers (JSONL/JSON/YAML)
   cli.py          `python -m generator build ...`
@@ -66,6 +68,7 @@ config/   triggers · routing_rules
 scenarios/ + expected/   7 golden scenarios and their pinned outcomes
 events/volume/           bulk behavioural events
 conversations/           17 scripted conversation trees (one per intent)
+fixtures/                pii_redaction.json — 13 PII redaction fixtures
 ```
 
 ## The one idea that makes it work
@@ -94,6 +97,7 @@ the mock returns the world's true £52.21, and the verifier must correct/strip i
 | `test_golden_scenarios.py` | every branch (W/AA/O/AE/AH) drives its pinned expected outcome |
 | `test_invariants.py` | frequency cap never exceeded over volume; **no unverified claim ever delivered** |
 | `test_business_entities.py` | v0.2 companies/plans/invoices/catalogues are schema-valid & referentially consistent; booking lifecycle exercised; totals derived not flat |
+| `test_pii_redaction.py` | S4: synthetic PII is provably fake (cards fail Luhn, emails RFC 2606, phones Ofcom drama block, IPs RFC 5737); spans are exact; redaction removes all PII **and nothing else**; the PII field marking still matches the models |
 | `test_conversation_intents.py` | all 17 POA/16 §16.4 intents covered; conversation claims grounded in the world; wrong quotes differ from live data and are excluded; mid-conversation requirement changes override slots; the reply source is swappable (§16.6 Phase-2 seam) |
 
 ## Extending
