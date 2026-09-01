@@ -1,7 +1,92 @@
 # POA — Conversation Orchestrator (Context + Personalisation)
 
-**Module ID:** M08 | **Flow stage:** 3 | **Flow nodes:** Q, T, U, V | **Status:** Draft
+**Module ID:** M08 | **Flow stage:** 3 | **Flow nodes:** Q, T, U, V
+**Status:** **Implementation landed 2026-09-01** (Shagun, Track B) — see §11
 **Depends on:** M03, M09 (LLM), M10 (verification), M11 (delivery) | **Triggered by:** M05/M06 (fire)
+
+---
+
+## 11. Implementation status (2026-09-01)
+
+Code: `services/conversation/orchestrator/` — `context.py`, `personalisation.py`, `prompts.py`,
+`state.py`, `service.py`.
+Tests: `tests/test_orchestrator_service.py` (30 tests; 282 in the suite, all green).
+
+**All seven §5 tasks implemented:**
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Conversation state schema + store | ✅ `Conversation`/`Turn` + `InMemoryConversationStore` (Postgres needs Prasad's A1) |
+| 2 | Context assembler with caching | ✅ `ContextAssembler`, TTL-cached, degrades rather than aborting |
+| 3 | Personalisation resolver | ✅ `PersonalisationResolver` — taxonomy derived, see below |
+| 4 | Versioned prompt templating + guardrails | ✅ `PromptBuilder`, version `m08-v1`, guardrails asserted by test |
+| 5 | Orchestration pipeline | ✅ `on_fire()` — generate → verify → deliver → persist → confirm |
+| 6 | Reservation confirm/rollback with M05 | ◐ protocol + in-memory impl; **the real contract is unagreed** — cross-track, added to POA/18 §5 |
+| 7 | Latency budget + timeouts | ✅ one `Deadline` the chain draws down against |
+
+### The PII boundary — the claim, stated precisely
+
+§8's fourth risk is "PII sent to LLM". S4 built `reference.redact(text, spans)`, which *applies*
+redaction but does not *detect* it, and M08 has no detector. Inventing one here would repeat the
+mistake S4 avoided: a detector that quietly under-detects looks like coverage.
+
+So the guarantee is the smaller, checkable one, and it matches POA/15 §4's **field allow-lists**:
+the context bundle carries only allow-listed fields, and a test asserts the allow-list is disjoint
+from every field `pii.PII_FIELDS` marks as PII. Adding a PII-bearing field to a bundle fails the
+suite rather than shipping a customer's name to a provider. A second test walks the whole S4
+fixture corpus and asserts none of those values appears in a built prompt.
+
+That covers *generated* context, which is all M08 assembles. `FREE_TEXT_FIELDS` is deliberately
+empty **and asserted empty**: free text would need a detector plus `redact()`, and the allow-list
+alone cannot save it — so that day is a failing test, not a silent regression.
+
+### Prompt injection — mitigated, not solved
+
+Injected context sits in an explicit fenced block the guardrails describe as data. That raises the
+cost of an attack; it does not eliminate it. What actually holds is the **layering**: a successful
+injection that persuades the model to quote "£1/day" still has to pass M10, which checks it against
+the live booking API and strips or corrects it. There is a test for exactly that. Prompt hardening
+is the first line; verification is the one that holds.
+
+### The five failure points
+
+§6 requires that on any downstream failure the customer still receives a safe fallback. Each stage
+fails differently and each is tested independently:
+
+| Stage fails | Behaviour |
+|---|---|
+| Context assembly | bundle marked `degraded`; the prompt tells the model not to cite past bookings |
+| Latency budget | fallback, never a partial send |
+| M09 | already returns its own templated fallback |
+| **M10 returns `blocked`** | fallback — the easy one to miss: `blocked` is a *successful* call that yields no deliverable text, so a naive orchestrator sends nothing |
+| M11 delivery | conversation marked failed, and the M05 reservation is **rolled back** |
+
+Rollback matters more than it looks: a fired trigger consumes one of the customer's capped
+engagements, and not handing it back means the customer silently loses an engagement they never
+received.
+
+### Two bugs caught while building this
+
+- **`json.dumps` was escaping non-ASCII**, so `£` and accented characters became backslash-u
+  escapes in the prompt. Beyond being harder for the model to read, it meant a value in the bundle
+  no longer appeared verbatim in the prompt — which silently voids any assertion about what did or
+  did not reach the provider. Now `ensure_ascii=False`.
+- **M09's off-scope heuristic was a false positive on price quotes.** "It's £52.21/day." contains
+  none of the on-scope keywords, so a perfectly good reply was being replaced by a generic
+  fallback. A message quoting a price is on-scope by definition here — the only thing this
+  assistant quotes prices about is rental. Fixed in `LLMService.assess`; the claim still goes
+  through M10.
+
+**Open questions — current state:**
+
+- **§10.1 (which HFB service supplies profile + booking history)** — open. `ProfileAdapter` is a
+  protocol; `DatasetProfileAdapter` reads the generated dataset today.
+- **§10.2 (personalisation taxonomy)** — **derived, not confirmed.** Tone/locale/formality are
+  built from what exists in the codebase (`CustomerType`, `Segment`, `Customer.region`, M09's four
+  locales). Product should correct it; nothing here is a guess dressed up as a decision.
+- **§10.3 (prompt-template ownership)** — open, and the same category as POA/09 §10.4. Both the
+  prompt guardrails and the fallback copy are **engineer-written and unowned**. Worth raising with
+  product as one question rather than two.
 
 ---
 

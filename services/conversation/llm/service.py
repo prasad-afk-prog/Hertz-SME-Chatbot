@@ -28,6 +28,8 @@ from enum import Enum
 from generator.models import LLMResponse, MessageKind, SignalType
 from generator.reference import decide_llm
 
+from services.conversation.claim_verification.detection import mentions_money
+
 from .fallback import FallbackCatalogue, RenderedFallback
 from .provider import (
     LLMProvider,
@@ -155,6 +157,15 @@ class LLMService:
             return FallbackReason.refusal
         if len(text) > self.config.max_response_chars:
             return FallbackReason.too_long
+
+        # A message quoting a price IS on-scope by definition — the only thing
+        # this assistant quotes prices about is rental. Without this, a perfectly
+        # good reply like "It's £52.21/day." is scored off-scope because it
+        # happens to contain none of the keywords, and the customer gets a
+        # generic fallback instead of an answer. (It still goes through M10.)
+        if mentions_money(text):
+            return FallbackReason.none
+
         if not any(marker in lowered for marker in _ON_SCOPE_MARKERS):
             return FallbackReason.off_scope
 

@@ -143,6 +143,17 @@ neither person blocks on the other:
    decoupled (matches the architecture's queue-based design).
 4. **Handoff event** (A8 → B6): same — a message contract, not an in-process
    call.
+5. **Engagement reservation confirm/rollback** (B2 → A6) — **added 2026-09-01,
+   and the one that needs agreeing soonest.** A fired trigger consumes one of
+   the customer's capped engagements. M08 must confirm that reservation on
+   successful delivery and **roll it back** when delivery fails, or the customer
+   silently loses an engagement they never received and the cap tightens over
+   time. M08 ships a `ReservationClient` protocol
+   (`confirm(reservation_id)` / `rollback(reservation_id, reason)`) with an
+   in-memory implementation. **The real shape is unagreed** — Prasad owns M05,
+   so this needs ten minutes between the two of us: who mints the reservation
+   id, whether rollback is idempotent, and what happens if the confirm call
+   itself fails.
 
 Whoever needs a contract change adds it to `generator/models.py`, runs
 `pytest`, and says so explicitly at day-end. Don't assume the other person

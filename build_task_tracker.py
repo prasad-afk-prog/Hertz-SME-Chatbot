@@ -131,7 +131,29 @@ TASKS = [
      "not the schema. RoutingRule.match/.route/.sla are bare dicts to tighten."),
 
     ("B2", "Conversation Orchestrator (context + personalisation)",
-     "POA/08", "Track B", "Not started", "", "", "", ""),
+     "POA/08", "Track B", "DONE", "2026-09-01", "2026-09-01",
+     "All 7 §5 tasks. The module that wires M09->M10->M11 into one conversation and owns the "
+     "state M12 continues. Biggest judgement call was the PII claim: S4 built redact() which "
+     "APPLIES redaction but does not DETECT it, and M08 has no detector — inventing one would "
+     "repeat the mistake S4 avoided. So the guarantee is the smaller checkable one matching "
+     "POA/15 §4 field allow-lists: the bundle carries only allow-listed fields and a test "
+     "asserts that set is DISJOINT from every field PII_FIELDS marks as PII, so adding a PII "
+     "field fails the suite instead of shipping a name to a provider. FREE_TEXT_FIELDS is empty "
+     "AND asserted empty, making free-text a failing test rather than a silent regression. This "
+     "is the end-to-end PII assertion I explicitly scoped OUT of S4 as an M08/M09 acceptance "
+     "test — it is now real. Five failure points each tested independently; the trap is M10 "
+     "returning blocked=True, which is a SUCCESSFUL call yielding no deliverable text, so a "
+     "naive orchestrator sends nothing. Delivery failure rolls the M05 reservation back — "
+     "otherwise the customer silently loses a capped engagement they never received. Prompt "
+     "injection is mitigated not solved, and the POA says so: the fence raises the cost, M10 is "
+     "what actually holds, and there is a test proving an injected £1/day price still gets "
+     "killed by verification. TWO BUGS CAUGHT: json.dumps was escaping non-ASCII so £ became a "
+     "backslash-u escape — which silently voids any assertion about what reached the provider; "
+     "and M09's off-scope heuristic was a false positive on price quotes ('It's £52.21/day.' "
+     "has no on-scope keyword), replacing good replies with generic fallbacks.",
+     "services/conversation/orchestrator/{context,personalisation,prompts,state,service}.py, "
+     "tests/test_orchestrator_service.py (30 tests) — 282 total green. Added the reservation "
+     "confirm/rollback handshake to POA/18 §5. Local only, not pushed."),
 
     ("B3", "LLM Integration & Fallback Service",
      "POA/09", "Track B", "DONE (7/7)", "2026-09-01", "2026-09-01",
@@ -358,6 +380,19 @@ LOG = [
      "wrote for the purpose: the tolerance at_least direction, and conflating delivery_ref with "
      "thread_id in M11 — the latter would have misrouted replies in production.",
      "75 new tests, 252 total green; POA 09/10 at 7/7, POA 11 done", "local only"),
+
+    ("2026-09-01", "B2",
+     "Built M08, the orchestrator — the module that wires 09/10/11 into one conversation. Most of "
+     "the value was in deciding what NOT to claim: the PII guarantee is a field allow-list "
+     "asserted disjoint from PII_FIELDS, not a detector I'd have had to hedge about, and it "
+     "finally makes real the end-to-end PII test I scoped out of S4. Same honesty on prompt "
+     "injection — the fence is a mitigation, M10 is what holds, and there's a test proving an "
+     "injected £1/day price still dies at verification. Found two bugs while testing: json.dumps "
+     "escaping non-ASCII (which would have quietly voided the PII assertions), and an off-scope "
+     "false positive in M09 that was replacing good price replies with generic fallbacks. Added "
+     "the M05 reservation confirm/rollback handshake to POA/18 §5 — it's cross-track and needs "
+     "ten minutes with Prasad.",
+     "30 new tests, 282 total green; POA/08 done", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #
