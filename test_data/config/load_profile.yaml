@@ -1,0 +1,8 @@
+events_per_sec: 10
+peak_eps: 50
+burst_eps: 100
+concurrent_customers: 500
+stress_customers: 1000
+sla_standard_ms: 2000
+sla_tool_ms: 5000
+mock_timeout_ms: 5000

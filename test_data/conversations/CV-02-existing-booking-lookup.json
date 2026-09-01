@@ -1,0 +1,50 @@
+{
+  "conversation_id": "CV-02-existing-booking-lookup",
+  "intent": "existing_booking_lookup",
+  "description": "Shortest path: reference supplied up front, one retrieval, done.",
+  "seed": 202,
+  "customer_id": "hfb-cust-cv02",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "Can you pull up my booking HFB-000123?",
+      "intent": "existing_booking_lookup",
+      "slots": {
+        "booking_ref": "HFB-000123"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "That's an Intermediate from London Heathrow, collecting 1 Sep at 10:00 and returning 4 Sep. Anything you'd like to change?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "no that's all, thanks",
+      "intent": "existing_booking_lookup",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "booking_ref"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

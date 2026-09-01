@@ -36,7 +36,7 @@
   },
   "events": [
     {
-      "event_id": "8f5d263e-2d0f-4d87-a534-0e5df150a653",
+      "event_id": "46b5576b-3bb9-5255-aa43-acf4826e1eb2",
       "customer_id": "hfb-cust-gs02",
       "session_id": "sess-gs02-00",
       "signal_type": "booking_abandoned",

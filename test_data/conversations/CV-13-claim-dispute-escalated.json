@@ -1,0 +1,43 @@
+{
+  "conversation_id": "CV-13-claim-dispute-escalated",
+  "intent": "claim_dispute",
+  "description": "Disputed charge \u2014 the bot must not concede or quote a refund amount.",
+  "seed": 213,
+  "customer_id": "hfb-cust-cv13",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "I've been charged a fuel fee but I returned it full.",
+      "intent": "claim_dispute",
+      "slots": {
+        "booking_ref": "HFB-000128",
+        "fee_type": "fuel"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "I can see the charge on that booking. Disputes are handled by our billing team \u2014 I'm passing this to them with your booking reference.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": true
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "escalated_to_human",
+    "required_slots": [
+      "booking_ref",
+      "fee_type"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "conversation_id": "CV-04-cancellation-with-retain-branch",
+  "intent": "cancellation",
+  "description": "Cancel request; main path cancels, branch retains after the fee is explained.",
+  "seed": 204,
+  "customer_id": "hfb-cust-cv04",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "I want to cancel HFB-000125",
+      "intent": "cancellation",
+      "slots": {
+        "booking_ref": "HFB-000125"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "I can do that. You're inside the free-cancellation window, so there's no charge. Shall I go ahead?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "yes cancel it",
+      "intent": "cancellation",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 4,
+      "speaker": "bot",
+      "text": "Cancelled. You'll get a confirmation shortly.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [
+    {
+      "branch_id": "retain",
+      "description": "Customer changes their mind once the terms are clear.",
+      "from_turn": 2,
+      "turns": [
+        {
+          "turn": 3,
+          "speaker": "customer",
+          "text": "actually no, leave it as it is",
+          "intent": "cancellation",
+          "slots": {},
+          "claims": [],
+          "requests_handoff": false
+        },
+        {
+          "turn": 4,
+          "speaker": "bot",
+          "text": "No problem \u2014 your booking is unchanged.",
+          "intent": null,
+          "slots": {},
+          "claims": [],
+          "requests_handoff": false
+        }
+      ],
+      "expected": {
+        "outcome": "resolved",
+        "required_slots": [
+          "booking_ref"
+        ],
+        "all_claims_verified": true,
+        "delivered_excludes": [],
+        "superseded_tokens": [],
+        "min_bot_turns": 1
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "booking_cancelled",
+    "required_slots": [
+      "booking_ref"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

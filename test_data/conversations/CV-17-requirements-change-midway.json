@@ -1,0 +1,166 @@
+{
+  "conversation_id": "CV-17-requirements-change-midway",
+  "intent": "requirements_change",
+  "description": "Customer changes location AND vehicle class after a quote; the superseded quote must be dropped and the booking must use the new slots.",
+  "seed": 217,
+  "customer_id": "hfb-cust-cv17",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "Economy from Heathrow, 1st to the 4th please",
+      "intent": "new_booking",
+      "slots": {
+        "pickup": "LHR",
+        "vehicle_class": "ECAR",
+        "pickup_at": "2026-09-01T10:00:00+00:00",
+        "return_at": "2026-09-04T10:00:00+00:00"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Economy at London Heathrow is \u00a336.99/day. Shall I book it?",
+      "intent": null,
+      "slots": {},
+      "claims": [
+        {
+          "kind": "price",
+          "pickup": "LHR",
+          "dropoff": "LHR",
+          "pickup_at": "2026-09-01T10:00:00Z",
+          "return_at": "2026-09-04T10:00:00Z",
+          "vehicle_class": "ECAR",
+          "quoted_price": "36.99",
+          "quoted_available": null,
+          "text_token": "\u00a336.99"
+        }
+      ],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "actually, make it Manchester instead \u2014 and I need an SUV, not an Economy",
+      "intent": "requirements_change",
+      "slots": {
+        "pickup": "MAN",
+        "vehicle_class": "SUV"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 4,
+      "speaker": "bot",
+      "text": "No problem \u2014 an SUV at Manchester is \u00a372.65/day for those dates.",
+      "intent": null,
+      "slots": {},
+      "claims": [
+        {
+          "kind": "price",
+          "pickup": "MAN",
+          "dropoff": "MAN",
+          "pickup_at": "2026-09-01T10:00:00Z",
+          "return_at": "2026-09-04T10:00:00Z",
+          "vehicle_class": "SUV",
+          "quoted_price": "72.65",
+          "quoted_available": null,
+          "text_token": "\u00a372.65"
+        }
+      ],
+      "requests_handoff": false
+    },
+    {
+      "turn": 5,
+      "speaker": "customer",
+      "text": "yes that one",
+      "intent": "requirements_change",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 6,
+      "speaker": "bot",
+      "text": "Booked \u2014 an SUV collecting at Manchester.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [
+    {
+      "branch_id": "revert",
+      "description": "Customer reverts to the original requirements after seeing the new price.",
+      "from_turn": 4,
+      "turns": [
+        {
+          "turn": 5,
+          "speaker": "customer",
+          "text": "that's more than I thought \u2014 go back to the Heathrow Economy",
+          "intent": "requirements_change",
+          "slots": {
+            "pickup": "LHR",
+            "vehicle_class": "ECAR"
+          },
+          "claims": [],
+          "requests_handoff": false
+        },
+        {
+          "turn": 6,
+          "speaker": "bot",
+          "text": "Back to Economy at London Heathrow, \u00a336.99/day. Booking that now.",
+          "intent": null,
+          "slots": {},
+          "claims": [
+            {
+              "kind": "price",
+              "pickup": "LHR",
+              "dropoff": "LHR",
+              "pickup_at": "2026-09-01T10:00:00Z",
+              "return_at": "2026-09-04T10:00:00Z",
+              "vehicle_class": "ECAR",
+              "quoted_price": "36.99",
+              "quoted_available": null,
+              "text_token": "\u00a336.99"
+            }
+          ],
+          "requests_handoff": false
+        }
+      ],
+      "expected": {
+        "outcome": "booking_created",
+        "required_slots": [
+          "pickup",
+          "vehicle_class"
+        ],
+        "all_claims_verified": true,
+        "delivered_excludes": [],
+        "superseded_tokens": [
+          "\u00a372.65"
+        ],
+        "min_bot_turns": 3
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "booking_created",
+    "required_slots": [
+      "pickup",
+      "vehicle_class",
+      "pickup_at",
+      "return_at"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [
+      "\u00a336.99"
+    ],
+    "min_bot_turns": 3
+  }
+}

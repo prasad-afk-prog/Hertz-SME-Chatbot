@@ -1,0 +1,42 @@
+{
+  "conversation_id": "CV-12-complaint-escalated",
+  "intent": "complaint",
+  "description": "Service complaint the bot must not attempt to settle \u2014 straight to M07.",
+  "seed": 212,
+  "customer_id": "hfb-cust-cv12",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "The car I got was filthy and nobody at the desk cared.",
+      "intent": "complaint",
+      "slots": {
+        "booking_ref": "HFB-000127",
+        "severity": "high"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "I'm sorry \u2014 that's not the standard we aim for. I'm putting you through to a colleague who can look at compensation.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": true
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "escalated_to_human",
+    "required_slots": [
+      "booking_ref"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

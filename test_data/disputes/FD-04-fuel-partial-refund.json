@@ -1,0 +1,19 @@
+{
+  "dispute_id": "FD-04-fuel-partial-refund",
+  "description": "Billed for 40 L missing but the actual shortfall was 10 L; reduce to the correct amount.",
+  "seed": 204,
+  "customer_id": "hfb-cust-fd04",
+  "booking_id": "bk-fd04",
+  "fee": {
+    "code": "fuel",
+    "label": "Refuelling charge (40 L + service fee)",
+    "amount": "85.00",
+    "currency": "GBP",
+    "disputed": true,
+    "dispute_reason": "Customer says the tank was nearly full on return"
+  },
+  "customer_message": "You charged me for 40 litres but I filled up right before returning it.",
+  "correct_amount": "32.50",
+  "resolution": "partial_refund",
+  "grounds": "pol-fuel: charge = service fee + missing litres \u00d7 price; recomputed to the actual 10 L shortfall."
+}

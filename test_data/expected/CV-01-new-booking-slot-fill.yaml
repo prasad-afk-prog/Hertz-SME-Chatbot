@@ -1,0 +1,10 @@
+outcome: booking_created
+required_slots:
+- pickup
+- pickup_at
+- return_at
+- vehicle_class
+all_claims_verified: true
+delivered_excludes: []
+superseded_tokens: []
+min_bot_turns: 4
