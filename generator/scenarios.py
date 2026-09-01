@@ -6,11 +6,11 @@ the booking-API mock reads, so verification tests are airtight.
 """
 from __future__ import annotations
 
-import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from .catalogues import fee_rules
+from .rng import stable_uuid
 from .models import (
     BookingClaim,
     BookingStep,
@@ -69,12 +69,14 @@ class ScenarioComposer:
             pickup=loc, dropoff=loc, pickup_at=self.pickup_at, return_at=self.return_at, vehicle_class=vc
         )
         base.update(ctx)
+        session_id = f"sess-{cid[-4:]}-00"
+        occurred_at = self.pickup_at + timedelta(minutes=5)
         return Event(
-            event_id=str(uuid.uuid4()),
+            event_id=stable_uuid(cid, session_id, signal.value, occurred_at.isoformat()),
             customer_id=cid,
-            session_id=f"sess-{cid[-4:]}-00",
+            session_id=session_id,
             signal_type=signal,
-            occurred_at=self.pickup_at + timedelta(minutes=5),
+            occurred_at=occurred_at,
             context=EventContext(**base),
         )
 
