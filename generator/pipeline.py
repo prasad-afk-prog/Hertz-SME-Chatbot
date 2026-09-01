@@ -11,6 +11,7 @@ import yaml
 from .catalogues import rate_plans as catalogue_rate_plans
 from .config import GenConfig
 from .fixtures import default_routing_rules, default_triggers
+from .intents import IntentScenarioComposer
 from .models import Dataset
 from .scenarios import ScenarioComposer
 from .volume import VolumeSampler
@@ -20,6 +21,7 @@ from .world import WorldBuilder
 def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
     world = WorldBuilder(cfg.seed).build()
     scenarios = ScenarioComposer(world).all()
+    conversations = IntentScenarioComposer(world).all()
     rate_plans = catalogue_rate_plans()
 
     companies: list = []
@@ -49,6 +51,7 @@ def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
         protection_products=world.protection_products,
         extras=world.extras,
         policies=world.policies,
+        conversations=conversations,
     )
 
 
@@ -69,7 +72,8 @@ def _dump_yaml(path: Path, obj) -> None:
 def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
     """Write the dataset; returns the paths written."""
     written: list[Path] = []
-    for sub in ("world", "master", "events/golden", "events/volume", "config", "scenarios", "expected"):
+    for sub in ("world", "master", "events/golden", "events/volume", "config", "scenarios", "expected",
+                "conversations"):
         (out / sub).mkdir(parents=True, exist_ok=True)
 
     # world (always)
@@ -95,6 +99,12 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
             _dump_json(p, sc.model_dump(mode="json")); written.append(p)
             e = out / f"expected/{sc.scenario_id}.yaml"
             _dump_yaml(e, sc.expected.model_dump(mode="json")); written.append(e)
+        # scripted conversation trees (S3 — POA/16 §16.4/§16.6)
+        for cv in ds.conversations:
+            p = out / f"conversations/{cv.conversation_id}.json"
+            _dump_json(p, cv.model_dump(mode="json")); written.append(p)
+            e = out / f"expected/{cv.conversation_id}.yaml"
+            _dump_yaml(e, cv.expected.model_dump(mode="json")); written.append(e)
 
     # volume tier
     if tier in ("all", "volume"):

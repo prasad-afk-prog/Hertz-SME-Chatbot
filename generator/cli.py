@@ -32,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  catalogues: {len(ds.protection_products)} protection, {len(ds.extras)} extras, "
               f"{len(ds.policies)} policies, {len(ds.rate_plans)} rate-plans")
         print(f"  golden scenarios: {len(ds.scenarios)}")
+        print(f"  conversation trees: {len(ds.conversations)} (17 intents, POA/16 §16.4)")
         if args.tier in ("all", "volume"):
             print(f"  volume: {len(ds.customers)} customers, {len(ds.companies)} companies, "
                   f"{len(ds.bookings)} bookings, {len(ds.invoices)} invoices, {len(ds.events)} events")

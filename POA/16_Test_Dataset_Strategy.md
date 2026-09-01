@@ -486,9 +486,11 @@ availability, vehicle-class questions, pickup/drop-off questions, fees & charges
 payment/deposit, complaints, claims/disputes, general Hertz info, unsupported/out-of-scope,
 ambiguous requests, and **customers changing requirements mid-conversation**. Replace with
 production-derived distributions once analytics exist.
-→ *Status:* the current dataset models 8 proactive **behavioural signals**, not inbound
-**conversation intents**. **Add** an intent taxonomy + scenarios covering the 17 intents above
-(this is the input side of the scripted-conversation work in §16.6).
+→ *Status:* **DONE (S3, 2026-09-01).** The `Intent` enum in `generator/models.py` covers all 17
+intents above, and `IntentScenarioComposer` ships one scripted tree per intent. Depth varies by
+structural distinctness (single-turn lookup, multi-turn slot filling, out-of-scope refusal,
+ambiguity→clarify, and the mid-conversation requirement change). The 8 proactive **behavioural
+signals** are unchanged and still separate — this is the inbound side.
 
 ### 16.5 PII / M15 data policy — RESOLVED
 *Q: which fields are PII for redaction/consent fixtures?*
@@ -514,8 +516,11 @@ Phase 2 without rework.
 - **Phase 2:** `scenario generator → LLM-generated customer variations → chatbot → evaluator → pass/fail + metrics`
 Phase-2 generator varies wording, tone, typos, incomplete info, ambiguity, requirement changes,
 frustration and multi-turn context while preserving intent.
-→ *Status:* new. **Add** a scripted conversation-tree format (turns + branches + expected outcomes)
-alongside the existing golden scenarios; keep the evaluator interface pluggable for Phase 2.
+→ *Status:* **DONE (S3, 2026-09-01).** `generator/intents.py` ships the scripted tree format
+(`ConversationScenario` = turns + branches + pinned `ConversationExpected`), all 17 §16.4 intents,
+and the Phase-2 seam: the customer-reply source sits behind the `ReplySource` protocol
+(`next_reply(ctx) -> str | None`), with `ScriptedReplySource` as the Phase-1 implementation. Trees
+are written to `test_data/conversations/`; assertions live in `tests/test_conversation_intents.py`.
 
 ### 16.7 Keep configurable (overall recommendation)
 Proceed with the above as the initial spec, but keep these **8 components configurable** so

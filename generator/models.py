@@ -503,6 +503,95 @@ class Scenario(BaseModel):
     expected: Expected
 
 
+# --------------------------------------------------------------------------- #
+# Scripted conversation trees (POA/16 §16.4 intents, §16.6 Phase-1 format)
+#
+# Deliberately SEPARATE from Scenario/Expected/TerminalState above: those model
+# the *proactive* pipeline (did a trigger fire, was a claim verified). These
+# model *inbound* conversations, which have different outcomes. Reusing the
+# proactive enums here would force members onto TerminalState that M04/M07
+# branch on — see POA/18 §4.
+# --------------------------------------------------------------------------- #
+class Intent(str, Enum):
+    """The 17 conversation intents mandated by POA/16 §16.4."""
+    new_booking = "new_booking"
+    existing_booking_lookup = "existing_booking_lookup"
+    booking_modification = "booking_modification"
+    cancellation = "cancellation"
+    pricing_quote = "pricing_quote"
+    vehicle_availability = "vehicle_availability"
+    vehicle_class_question = "vehicle_class_question"
+    pickup_dropoff_question = "pickup_dropoff_question"
+    fees_and_charges = "fees_and_charges"
+    extras_insurance = "extras_insurance"
+    payment_deposit = "payment_deposit"
+    complaint = "complaint"
+    claim_dispute = "claim_dispute"
+    general_info = "general_info"
+    out_of_scope = "out_of_scope"
+    ambiguous = "ambiguous"
+    requirements_change = "requirements_change"
+
+
+class Speaker(str, Enum):
+    customer = "customer"
+    bot = "bot"
+
+
+class ConversationOutcome(str, Enum):
+    resolved = "resolved"                        # answered, nothing to change
+    booking_created = "booking_created"
+    booking_modified = "booking_modified"
+    booking_cancelled = "booking_cancelled"
+    escalated_to_human = "escalated_to_human"    # M07 handoff
+    declined_out_of_scope = "declined_out_of_scope"
+    abandoned = "abandoned"
+
+
+class ConversationTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    turn: int
+    speaker: Speaker
+    text: str
+    intent: Intent | None = None                 # customer turns only
+    slots: dict[str, str] = Field(default_factory=dict)   # slots filled here
+    claims: list[BookingClaim] = Field(default_factory=list)  # bot turns -> M10
+    requests_handoff: bool = False
+
+
+class ConversationExpected(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    outcome: ConversationOutcome
+    required_slots: list[str] = Field(default_factory=list)
+    # every claim on a bot turn must have passed M10 before delivery
+    all_claims_verified: bool = True
+    delivered_excludes: list[str] = Field(default_factory=list)
+    min_bot_turns: int = 1
+
+
+class ConversationBranch(BaseModel):
+    """An alternate continuation taken from `from_turn` instead of the main path."""
+    model_config = ConfigDict(extra="forbid")
+    branch_id: str
+    description: str
+    from_turn: int
+    turns: list[ConversationTurn]
+    expected: ConversationExpected
+
+
+class ConversationScenario(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    conversation_id: str
+    intent: Intent
+    description: str
+    seed: int
+    customer_id: str
+    language: str = "en"
+    turns: list[ConversationTurn]
+    branches: list[ConversationBranch] = Field(default_factory=list)
+    expected: ConversationExpected
+
+
 class Dataset(BaseModel):
     """The full generated bundle."""
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -524,3 +613,5 @@ class Dataset(BaseModel):
     protection_products: list[ProtectionProduct] = Field(default_factory=list)
     extras: list[Extra] = Field(default_factory=list)
     policies: list[Policy] = Field(default_factory=list)
+    # S3 — scripted conversation trees (POA/16 §16.4/§16.6)
+    conversations: list[ConversationScenario] = Field(default_factory=list)

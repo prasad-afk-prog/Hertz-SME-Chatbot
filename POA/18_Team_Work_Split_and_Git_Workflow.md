@@ -34,7 +34,7 @@ tracks, so this gets cleared first, split by file to stay collision-free:
 |---|---|---|---|
 | S1 | Expand taxonomy & stations — 12 classes, city/suburban, one-way | `generator/world.py`, `catalogues.py`, `config.py` | Prasad |
 | S2 | Fee completeness — late-return, no-show, fuel + dispute scenarios | `generator/customers.py`, `durations.py`, `scenarios.py` | Prasad |
-| S3 | Conversation-intent scenarios + scripted trees (17 intents) | `generator/patterns.py` (new intent module), `mocks/llm_provider.py` | Shagun |
+| S3 | Conversation-intent scenarios + scripted trees (17 intents) — **DONE 2026-09-01** | `generator/intents.py` (new), `models.py`, `pipeline.py`, `cli.py` | Shagun |
 | S4 | PII redaction fixtures — obvious + embedded | new fixture module + `tests/` | Shagun |
 | S5 | Load/SLA config knobs — eps, concurrency, mock timeouts | `generator/config.py`, `volume.py` | Prasad |
 | S6 | Future-client-compat layer — repository interface + `field_map.yaml` + lenient DTO | new `generator/repository.py` | Shagun |
@@ -59,10 +59,10 @@ turning the event/trigger side into real services.
 | A2 | Event Store (Postgres + Redis Streams) | `03_POA_Event_Store.md` | A1 |
 | A3 | Customer Journey & Behavioural Event Capture (SDK/contract) | `01_POA_...Event_Capture.md` | A4 contract |
 | A4 | Event Ingestion API (FastAPI) | `02_POA_Event_Ingestion_API.md` | A2 |
-| A5 | Trigger Evaluation Engine | `04_POA_Trigger_Evaluation_Engine.md` | A2, A6, **B1** |
-| A6 | Frequency Cap & Precedence Engine | `05_POA_Frequency_Cap_Precedence.md` | A2, **B1** |
+| A5 | Trigger Evaluation Engine | `04_POA_Trigger_Evaluation_Engine.md` | A2, A6 |
+| A6 | Frequency Cap & Precedence Engine | `05_POA_Frequency_Cap_Precedence.md` | A2 |
 | A7 | Pending-Engagement Queue & Deferred Scheduler (Celery) | `06_POA_...Scheduler.md` | A2, A5 |
-| A8 | Human Handoff Manager | `07_POA_Human_Handoff_Manager.md` | A5, **B1** |
+| A8 | Human Handoff Manager | `07_POA_Human_Handoff_Manager.md` | A5 |
 
 Code lives under: `services/event_pipeline/` (+ `services/platform/` for A1).
 
@@ -70,7 +70,7 @@ Code lives under: `services/event_pipeline/` (+ `services/platform/` for A1).
 
 | Order | Module | POA file | Depends on |
 |---|---|---|---|
-| **B1** | **Admin Console & Trigger Configuration (data model + CRUD) — SHIP FIRST** | `13_POA_Admin_Console_Trigger_Config.md` | A2 |
+| B1 | Admin Console & Trigger Configuration (persistence + CRUD) | `13_POA_Admin_Console_Trigger_Config.md` | A2 |
 | B2 | Conversation Orchestrator | `08_POA_Conversation_Orchestrator.md` | A2, B3, B4, B5 |
 | B3 | LLM Integration & Fallback Service | `09_POA_LLM_Integration_Fallback.md` | B2 |
 | B4 | Claim Verification Service | `10_POA_Claim_Verification_Service.md` | booking-API mock (built) |
@@ -80,15 +80,18 @@ Code lives under: `services/event_pipeline/` (+ `services/platform/` for A1).
 
 Code lives under: `services/conversation/`.
 
-**Two things Shagun must know reading this table:**
+**Two things worth knowing when reading this table:**
 
-1. **B1 is day-one, ship-first — ahead of B2–B7.** Three of Prasad's eight
-   modules (A5, A6, A8) wait on M13's config schema, and the master index
-   puts M13 in **Phase 0** as a foundation. If B1 lands late, Prasad builds
-   three modules against `generator/fixtures.py` defaults and then reworks
-   them — the exact wasted-effort failure this document exists to prevent.
-   B1's deliverable that unblocks Track A is small: the **config data model +
-   migration + CRUD**. The admin *UI* can follow later, alongside B5.
+1. **B1 does *not* block Track A** (corrected 2026-09-01 — an earlier draft of
+   this file said it did). The M13 config **contract already exists**:
+   `TriggerConfig`, `RoutingRule`, `FrequencyCap` and `Deferred` are in
+   `generator/models.py`, with working defaults in `generator/fixtures.py`.
+   Prasad can build A5/A6/A8 against those today. What B1 still owes is
+   **persistence + admin CRUD**, not the schema.
+   One real caveat: `RoutingRule.match`, `.route` and `.sla` are bare `dict`
+   with no inner types. B1 will likely tighten them into real models, so A8
+   should keep its handoff code thin around those three fields to avoid a
+   rework.
 2. **The master index nominally puts all of Track B in Phase 2**, downstream of
    Track A's Phase 1. Track B does **not** wait for that: build B2–B6 against
    the existing mocks and generated fixtures (`mocks/booking_api.py`,
@@ -202,14 +205,14 @@ it. Kept this way, git merges the two halves cleanly.
 | A2 Event Store | Prasad | not started | |
 | A3 Event Capture SDK | Prasad | not started | |
 | A4 Ingestion API | Prasad | not started | |
-| A5 Trigger Evaluation | Prasad | not started | waits on B1 |
-| A6 Frequency/Precedence | Prasad | not started | waits on B1 |
+| A5 Trigger Evaluation | Prasad | not started | |
+| A6 Frequency/Precedence | Prasad | not started | |
 | A7 Pending Queue/Scheduler | Prasad | not started | |
-| A8 Human Handoff | Prasad | not started | waits on B1 |
-| S3 Intent scenarios / scripted trees | Shagun | not started | |
+| A8 Human Handoff | Prasad | not started | keep thin around RoutingRule dicts |
+| S3 Intent scenarios / scripted trees | Shagun | DONE | generator/intents.py, 17 intents, 23 tests |
 | S4 PII redaction fixtures | Shagun | not started | |
 | S6 Client-compat repository layer | Shagun | not started | |
-| B1 Admin config model + CRUD | Shagun | not started | **ship first — unblocks A5/A6/A8** |
+| B1 Admin config model + CRUD | Shagun | not started | persistence + CRUD; contract already in models.py |
 | B2 Conversation Orchestrator | Shagun | not started | |
 | B3 LLM Integration/Fallback | Shagun | not started | |
 | B4 Claim Verification | Shagun | not started | |
