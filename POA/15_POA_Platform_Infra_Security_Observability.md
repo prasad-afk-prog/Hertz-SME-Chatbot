@@ -94,3 +94,33 @@ through all phases. Initial ~3–4 weeks, then continuous.
 2. Compliance regime (GDPR/UK-GDPR) specifics, DPIA owner, retention mandates?
 3. Approved LLM provider + region for data residency?
 4. Existing shared platform/tooling at Envigo/Hertz to reuse vs. greenfield?
+
+## 12. Repo layout — RATIFIED (2026-09-01)
+
+Resolves POA/18 §8.2 (and the scaffolding scope in §1). Service code lives in a
+single-repo `services/` monorepo, one virtualenv, so the two-person track split
+stays collision-free:
+
+```
+services/
+  platform/        # shared FastAPI/Celery template (this module, M15):
+                   #   config, structured logging, correlation-id middleware,
+                   #   Prometheus metrics, OpenTelemetry seam, health/readiness,
+                   #   error handling, lazy Postgres/Redis/Celery factories
+  event_pipeline/  # Track A (Prasad): A2 store, A4 ingest, A5/A6, A7, A8
+  conversation/    # Track B (Shagun): B1–B7
+```
+
+- `generator.models` stays the single source of truth for the wire contract
+  (design principle P3); services import it rather than redefining schemas.
+- A new module is scaffolded with `create_app("<name>")` and inherits
+  logging/metrics/tracing/health for free (§7 acceptance criterion).
+- Config is env-driven (`HFB_*`, see `.env.example`); no secrets in code.
+- Local stack: `docker-compose.yml` (Postgres + Redis + service). CI:
+  `.github/workflows/ci.yml` (pytest matrix + `ruff check services`).
+
+**A1 (platform skeleton) delivered 2026-09-01**: the `services/platform/` template
+above + a booting `services/event_pipeline/` app, docker-compose, Dockerfile, CI
+and `.env.example`. Deferred to later modules: real DB/Redis wiring (A2), Celery
+tasks (A7), IaC/Terraform, secret-manager integration, and the OTel exporter
+install (the seam is wired, off by default). Items 1–4 above still gate prod infra.

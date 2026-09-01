@@ -1,0 +1,15 @@
+# Runtime dependencies for the HFB services (A1 platform skeleton onward).
+#   pip install -r services/requirements.txt
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic-settings>=2.2
+prometheus-client>=0.20
+
+# Roadmap — added by later Track A modules as they need them:
+# sqlalchemy>=2.0        # A2 Event Store
+# psycopg[binary]>=3.1   # A2 Postgres driver
+# redis>=5.0             # A2 Redis Streams / A5 frequency counters
+# celery>=5.3            # A7 Pending Queue / Scheduler
+# opentelemetry-sdk>=1.25
+# opentelemetry-exporter-otlp>=1.25
+# opentelemetry-instrumentation-fastapi>=0.46b0   # enables the tracing baseline

@@ -11,6 +11,9 @@ __pycache__/
 venv/
 env/
 
+# Local secrets / env config (use .env.example as the template)
+.env
+
 # OS / editor
 .DS_Store
 *.swp

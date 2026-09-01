@@ -1,8 +1,10 @@
 -r requirements.txt
+-r services/requirements.txt
 pytest>=8.0
+httpx>=0.27      # FastAPI TestClient
+ruff>=0.5        # lint (CI runs `ruff check services`)
 
 # Optional enhancements (POA/16 §8) — layer in as the real project grows.
-# Not required to run this scaffold, which is stdlib + pydantic + pyyaml only.
 # faker           # realistic names/locales (seeded)
 # numpy           # heavier distribution sampling
 # hypothesis      # property-based / adversarial generation

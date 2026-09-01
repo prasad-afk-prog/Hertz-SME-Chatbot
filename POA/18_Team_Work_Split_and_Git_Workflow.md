@@ -214,7 +214,7 @@ it. Kept this way, git merges the two halves cleanly.
 | S1 Taxonomy & stations | Prasad | in progress | 2026-09-01 implemented+tested locally: 12-class taxonomy (additive world pass-3, golden prices byte-stable), city/suburban + US/USD stations, one-way helpers + config knob |
 | S2 Fee completeness | Prasad | in progress | 2026-09-01 implemented+tested locally: one-way + late-return/no-show/fuel fees & disputes, FeeLine/FeeDispute models, 5 dispute fixtures |
 | S5 Load/SLA knobs | Prasad | in progress | 2026-09-01 implemented+tested locally: LoadProfile (eps/concurrency/SLA/mock-timeout) on GenConfig, exposed via volume + config/load_profile.yaml |
-| A1 Platform skeleton | Prasad | not started | |
+| A1 Platform skeleton | Prasad | in progress | 2026-09-01 done+tested: services/platform/ template (create_app: logging, correlation-id, Prometheus /metrics, OTel seam, health/readyz, errors, lazy pg/redis/celery factories) + booting services/event_pipeline/ + docker-compose + Dockerfile + CI + .env.example; repo layout ratified in POA/15 §12; 8 tests |
 | A2 Event Store | Prasad | not started | |
 | A3 Event Capture SDK | Prasad | not started | |
 | A4 Ingestion API | Prasad | not started | |
@@ -243,11 +243,10 @@ Issues or a Project board — outside git, so it has no merge semantics at all.
 1. ~~**Confirm track ownership** (§3).~~ **RESOLVED 2026-09-01** — Prasad takes
    Track A (event/trigger pipeline + platform, POA 01–07 & 15), Shagun takes
    Track B (conversation, config, reporting, POA 08–14).
-2. **Repo layout for service code.** No POA specifies one — `POA/16 §14`
-   covers only `test_data/`/`generator/`/`mocks/`, and `POA/15` has no layout
-   section. This document assumes `services/event_pipeline/`,
-   `services/platform/`, `services/conversation/`. Agree on it before A1/B1
-   start, and record the answer in `POA/15` so it has a single home.
+2. ~~**Repo layout for service code.**~~ **RESOLVED 2026-09-01** — ratified the
+   `services/` monorepo this document assumed (`services/platform/` shared
+   template, `services/event_pipeline/` Track A, `services/conversation/` Track
+   B), recorded in `POA/15 §12`. Delivered by A1.
 3. **Branch protection on `main`** — required PR review, no direct pushes.
    Worth enabling once both branches exist, so a bad merge can't land without
    the other person seeing the diff.
