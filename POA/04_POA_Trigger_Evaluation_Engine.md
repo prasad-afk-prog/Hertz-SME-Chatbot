@@ -109,3 +109,38 @@ Phase 1 core. ~3–4 weeks. Central dependency for M05/M06/M07/M08.
 1. Rule DSL: build minimal in-house vs adopt json-logic/CEL?
 2. Frequency of deferred (I/J) scans and dormancy threshold source?
 3. How are handoff events represented on their way back from M12 (stream vs direct call)?
+
+## 11. Build notes / deviations (A5 — 2026-09-01)
+
+Delivered in `services/event_pipeline/triggers/`, on the A1 template, wiring A2
+(stream) → A5 (match/route) → A6 (arbitrate) → M08.
+
+- **Rule DSL** (`dsl.py`): a minimal in-house, sandboxed field/op/value evaluator
+  (§10.1 answered: in-house, not json-logic/CEL for now) — ops
+  eq/ne/in/not_in/gt/gte/lt/lte/exists over dotted attribute paths, no `eval`
+  (§8). `matching_rules` = signal match + all conditions. Truth-tabled.
+- **Node-N routing** (`evaluator.py`): per event — idempotency guard → match →
+  deferred matches to `DeferredSink` (M06/A7), in-session matches to A6.reserve;
+  approved → `FireMessage` on `FireSink` (M08/B2), suppressed → `SuppressionSink`
+  (Z1 → M14), no match → dropped.
+- **Contracts as messages, not calls** (POA/18 §5): the fire decision is a
+  `FireMessage` (in `generator/models.py`) carrying A6's `reservation_id`; every
+  downstream is a sink protocol with an in-memory default (Redis/queue in prod).
+- **Delegation**: cap/precedence is A6's — A5 just hands it `MatchCandidate`s —
+  and matching is the DSL, so A5 owns no arbitration logic of its own.
+- **Idempotency** (§3.3): an `IdempotencyGuard` seam (in-memory default) dedupes
+  re-delivered stream events so an at-least-once redelivery can't double-fire.
+- **Stream** (`consumer.py`): `RedisTriggerConsumer` (XREADGROUP `events:in` /
+  group `trigger-eval` → evaluate → XACK); `parse_stream_fields` reconstructs the
+  Event from the relay's fields (round-trip tested). An end-to-end test drives
+  store → relay → parse → evaluate → fire with no Redis.
+
+**Deferred:** deferred-signal (I/J) derivation *workers* (§5.6 — needs A7/Celery
+scheduling; the deferred *routing* path is done), rule-cache hot-reload/pub-sub
+(§5.2 — RuleSource seam is in place), the handoff branch (§10.3 open; M07/M12
+absent), and per-customer consumer partitioning (§3.3 — the A6 lock already keeps
+the cap safe). Consumer loop is integration-tested (docker), not unit.
+
+**Acceptance (§6):** in-session match → fire-or-suppression ✓, deferred match →
+enqueue ✓, no double-fire past the cap under repeat/redelivery ✓. Config
+hot-reload + I/J derivation await A7 + M13.

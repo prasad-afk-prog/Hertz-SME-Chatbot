@@ -500,6 +500,18 @@ class EngagementDecision(BaseModel):
     losers: dict[str, SuppressionReason] = Field(default_factory=dict)  # trigger_id -> reason (M14)
 
 
+class FireMessage(BaseModel):
+    """A5/M04 -> M08/B2: start a conversation for an approved engagement. Carries
+    A6's reservation_id so M08 confirms (on delivery) / rolls back (on failure)."""
+    model_config = ConfigDict(extra="forbid")
+    reservation_id: str
+    customer_id: str
+    trigger_id: str
+    event_id: str
+    message_template_ref: str | None = None
+    occurred_at: datetime
+
+
 # --------------------------------------------------------------------------- #
 # LLM fixtures & claims (M09 <-> M10)
 # --------------------------------------------------------------------------- #
