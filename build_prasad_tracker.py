@@ -125,13 +125,24 @@ TASKS = [
 
     ("A6", "Frequency Cap & Precedence Engine",
      "POA/05", "Track A", "Not started", "", "", "",
-     "NEXT (with A4). Build before A5 — the Trigger Engine depends on it. Depends on A2. "
+     "NEXT. Build before A5 — the Trigger Engine depends on it. Depends on A2. "
      "reference.would_fire is the executable spec to delegate to."),
 
     ("A4", "Event Ingestion API (FastAPI)",
-     "POA/02", "Track A", "Not started", "", "", "",
-     "Depends on A2. Consumes the Event contract from generator/models.py (extra='forbid' makes "
-     "malformed-event rejection testable)."),
+     "POA/02", "Track A", "In progress", "2026-09-01", "",
+     "Core done + tested. The single write-door in services/event_pipeline/ingestion/: POST "
+     "/v1/events + POST /v1/events:batch (partial-success) writing through A2's transactional "
+     "outbox. Single-event body IS generator.models.Event, so FastAPI validation + extra='forbid' "
+     "is the PII field allow-list (POA/15 §4) — unknown/PII field -> 422. Auth, identity binding "
+     "and rate limiting sit behind seams because §10 is open: ApiKeyAuthenticator now (mTLS/JWT "
+     "later; JWT would set Principal.customer_id so identity binding becomes a real cross-check), "
+     "in-memory fixed-window rate limiter (Redis in prod). Idempotency delegated to the store "
+     "(retry -> 202 duplicate, never a second row). Outcome->status 202/409/429/503/422. "
+     "build_app wires it when a store is present + accepts an injected store for tests. "
+     "Deferred (POA/02 §11): real auth mechanism, distributed rate limiter, load verification.",
+     "services/event_pipeline/ingestion/{router,service,auth,ratelimit,schemas}.py, main.py, "
+     "services/platform/config.py, pyproject (ruff), POA/02 §11; tests/test_ingestion_api.py (11, "
+     "incl. e2e API->store->relay->stream) — 123 total green, ruff clean. Commit ee06657 (PR #1)"),
 
     ("A5", "Trigger Evaluation Engine",
      "POA/04", "Track A", "Not started", "", "", "",
@@ -245,6 +256,17 @@ LOG = [
      "INTEGER PRIMARY KEY is the rowid alias) — fixed with with_variant. Scoped POA/03 §11 honestly: "
      "retention/partition + signal-J backfill + live-Redis deferred.",
      "12 new tests, 112 total green; ruff clean", "d8fc10b (PR #1)"),
+
+    ("2026-09-01", "A4",
+     "Built the Ingestion API — the single write-door — on the A1 template, writing through A2's "
+     "outbox (so no direct dual write). Kept the same discipline: the body IS the Event contract, "
+     "so validation + extra='forbid' doubles as the PII field allow-list, and idempotency is the "
+     "store's not a second mechanism. The §10 open questions (auth mechanism, identity token vs "
+     "body, volume) are handled behind seams — API-key auth, identity binding, in-memory rate "
+     "limiter — the way Shagun handled B4/B5's open transport, so none of them block code. Batch "
+     "endpoint does per-item validation for partial success. Added an injected-store path to "
+     "build_app for tests and an end-to-end test proving API->store->outbox->relay->stream.",
+     "11 new tests, 123 total green; ruff clean", "ee06657 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #
