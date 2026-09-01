@@ -15,6 +15,9 @@ services = [
     "uvicorn[standard]>=0.29",
     "pydantic-settings>=2.2",
     "prometheus-client>=0.20",
+    "sqlalchemy>=2.0",            # A2 Event Store
+    "psycopg[binary]>=3.1",       # A2 Postgres driver (tests use bundled SQLite)
+    "redis>=5.0",                 # A2 Redis Streams / A5 counters
 ]
 dev = [
     "pytest>=8.0",

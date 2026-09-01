@@ -215,7 +215,7 @@ it. Kept this way, git merges the two halves cleanly.
 | S2 Fee completeness | Prasad | in progress | 2026-09-01 implemented+tested locally: one-way + late-return/no-show/fuel fees & disputes, FeeLine/FeeDispute models, 5 dispute fixtures |
 | S5 Load/SLA knobs | Prasad | in progress | 2026-09-01 implemented+tested locally: LoadProfile (eps/concurrency/SLA/mock-timeout) on GenConfig, exposed via volume + config/load_profile.yaml |
 | A1 Platform skeleton | Prasad | in progress | 2026-09-01 done+tested: services/platform/ template (create_app: logging, correlation-id, Prometheus /metrics, OTel seam, health/readyz, errors, lazy pg/redis/celery factories) + booting services/event_pipeline/ + docker-compose + Dockerfile + CI + .env.example; repo layout ratified in POA/15 §12; 8 tests |
-| A2 Event Store | Prasad | not started | |
+| A2 Event Store | Prasad | in progress | 2026-09-01 core done + downstream-ready: Postgres schema + idempotent transactional write+outbox, at-least-once Redis-stream relay (property-tested), read models (recent/session/repeated-search), postgres readiness. Runs on Postgres/prod + SQLite/tests. Deferred: retention/partition job, signal-J booking backfill, live-Redis integration (POA/03 §11) |
 | A3 Event Capture SDK | Prasad | not started | |
 | A4 Ingestion API | Prasad | not started | |
 | A5 Trigger Evaluation | Prasad | not started | |

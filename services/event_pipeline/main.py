@@ -1,15 +1,14 @@
 """Track A — Event & Trigger Pipeline service entrypoint.
 
-At the A1 skeleton stage this only proves the shared template boots and is
-observable. Subsequent Track A modules mount their routers/workers here:
-A2 Event Store, A4 Ingestion API, A5 Trigger Eval, A6 Frequency/Precedence,
-A7 Pending Queue (Celery), A8 Human Handoff.
+Boots the shared platform template and, from A2 on, wires the Event Store.
+Subsequent Track A modules mount their routers/workers here: A4 Ingestion API,
+A5 Trigger Eval, A6 Frequency/Precedence, A7 Pending Queue (Celery), A8 Handoff.
 
 Run locally:  uvicorn services.event_pipeline.main:app --reload
 """
 from __future__ import annotations
 
-from services.platform import create_app, get_logger, get_settings
+from services.platform import Settings, create_app, get_logger, get_settings
 from services.platform.health import ReadinessCheck
 
 log = get_logger("event_pipeline")
@@ -28,21 +27,36 @@ def _redis_ready() -> bool:
         return False
 
 
-def build_app():
-    settings = get_settings()
+def build_app(settings: Settings | None = None):
+    settings = settings or get_settings()
     checks: dict[str, ReadinessCheck] = {}
-    if settings.redis_url:          # only assert readiness on configured dependencies
+    event_store = None
+
+    # A2 — Event Store. Wired only when a database is configured, so the app
+    # still boots (and the tests run) with no infrastructure present.
+    if settings.database_url:
+        from services.platform.clients import make_engine
+
+        from .store import SqlEventStore, bootstrap
+
+        engine = make_engine(settings)
+        if settings.environment in {"local", "dev"}:
+            bootstrap.create_all(engine)          # prod schema is owned by Alembic
+        event_store = SqlEventStore(engine)
+        checks["postgres"] = event_store.health
+
+    if settings.redis_url:                        # A2 stream conduit / A5 counters
         checks["redis"] = _redis_ready
-    # A2 will add a "postgres" check here once database_url is wired.
 
     app = create_app("event-pipeline", readiness_checks=checks)
+    app.state.event_store = event_store           # A4 will write through this
 
     @app.get("/", tags=["meta"])
     def root() -> dict[str, object]:
         return {
             "service": "event-pipeline",
             "track": "A",
-            "status": "skeleton",
+            "status": "event-store wired" if event_store else "skeleton",
             "planned_modules": MODULES,
         }
 
