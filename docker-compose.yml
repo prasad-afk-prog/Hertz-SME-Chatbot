@@ -1,0 +1,41 @@
+name: hfb
+
+# Local dev stack (M15 §2 environments): Postgres + Redis + the Track A service.
+# Track B's conversation service will be added alongside event-pipeline.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hfb
+      POSTGRES_PASSWORD: hfb
+      POSTGRES_DB: hfb
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hfb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  event-pipeline:
+    build:
+      context: .
+      dockerfile: services/event_pipeline/Dockerfile
+    environment:
+      HFB_ENVIRONMENT: local
+      HFB_DATABASE_URL: postgresql+psycopg://hfb:hfb@postgres:5432/hfb
+      HFB_REDIS_URL: redis://redis:6379/0
+    ports: ["8000:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

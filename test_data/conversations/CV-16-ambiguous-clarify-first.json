@@ -1,0 +1,98 @@
+{
+  "conversation_id": "CV-16-ambiguous-clarify-first",
+  "intent": "ambiguous",
+  "description": "Under-specified opener: the bot must ask, not guess. Branch = customer abandons instead of clarifying.",
+  "seed": 216,
+  "customer_id": "hfb-cust-cv16",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "how much is it",
+      "intent": "ambiguous",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Happy to check \u2014 which location and vehicle class did you have in mind?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "Heathrow, the cheapest one",
+      "intent": "ambiguous",
+      "slots": {
+        "pickup": "LHR",
+        "vehicle_class": "ECAR"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 4,
+      "speaker": "bot",
+      "text": "Economy at London Heathrow is \u00a336.99/day.",
+      "intent": null,
+      "slots": {},
+      "claims": [
+        {
+          "kind": "price",
+          "pickup": "LHR",
+          "dropoff": "LHR",
+          "pickup_at": "2026-09-01T10:00:00Z",
+          "return_at": "2026-09-04T10:00:00Z",
+          "vehicle_class": "ECAR",
+          "quoted_price": "36.99",
+          "quoted_available": null,
+          "text_token": "\u00a336.99"
+        }
+      ],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [
+    {
+      "branch_id": "abandon",
+      "description": "Customer never supplies the missing slots.",
+      "from_turn": 2,
+      "turns": [
+        {
+          "turn": 3,
+          "speaker": "customer",
+          "text": "never mind",
+          "intent": "ambiguous",
+          "slots": {},
+          "claims": [],
+          "requests_handoff": false
+        }
+      ],
+      "expected": {
+        "outcome": "abandoned",
+        "required_slots": [],
+        "all_claims_verified": true,
+        "delivered_excludes": [],
+        "superseded_tokens": [],
+        "min_bot_turns": 1
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "pickup",
+      "vehicle_class"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 2
+  }
+}

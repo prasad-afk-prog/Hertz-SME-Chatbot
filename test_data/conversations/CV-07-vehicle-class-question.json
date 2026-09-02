@@ -1,0 +1,50 @@
+{
+  "conversation_id": "CV-07-vehicle-class-question",
+  "intent": "vehicle_class_question",
+  "description": "Pure catalogue question \u2014 no price, no availability, so nothing to verify.",
+  "seed": 207,
+  "customer_id": "hfb-cust-cv07",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "What's the difference between Intermediate and Full-size?",
+      "intent": "vehicle_class_question",
+      "slots": {
+        "vehicle_class": "ICAR"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Intermediate seats five with two large cases; Full-size gives you more boot space and a bigger engine. Both are automatic.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "got it, thanks",
+      "intent": "vehicle_class_question",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "vehicle_class"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

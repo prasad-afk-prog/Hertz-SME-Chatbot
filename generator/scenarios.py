@@ -6,10 +6,11 @@ the booking-API mock reads, so verification tests are airtight.
 """
 from __future__ import annotations
 
-import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
+from .catalogues import fee_rules
+from .rng import stable_uuid
 from .models import (
     BookingClaim,
     BookingStep,
@@ -17,10 +18,14 @@ from .models import (
     Consent,
     Customer,
     CustomerType,
+    DisputeResolution,
     Event,
     EventContext,
     Expected,
     FailureKey,
+    FeeDispute,
+    FeeLine,
+    FeeType,
     FrequencyCap,
     LLMResponse,
     MessageKind,
@@ -64,12 +69,14 @@ class ScenarioComposer:
             pickup=loc, dropoff=loc, pickup_at=self.pickup_at, return_at=self.return_at, vehicle_class=vc
         )
         base.update(ctx)
+        session_id = f"sess-{cid[-4:]}-00"
+        occurred_at = self.pickup_at + timedelta(minutes=5)
         return Event(
-            event_id=str(uuid.uuid4()),
+            event_id=stable_uuid(cid, session_id, signal.value, occurred_at.isoformat()),
             customer_id=cid,
-            session_id=f"sess-{cid[-4:]}-00",
+            session_id=session_id,
             signal_type=signal,
-            occurred_at=self.pickup_at + timedelta(minutes=5),
+            occurred_at=occurred_at,
             context=EventContext(**base),
         )
 
@@ -296,4 +303,113 @@ class ScenarioComposer:
                 terminal_state=TerminalState.handed_off,
                 delivered_excludes=[token],
             ),
+        )
+
+
+class FeeDisputeComposer:
+    """Hand-authored fee-dispute fixtures (S2 — POA/16 §16.1: "why was I charged
+    X?" / disputes). Parallel to the golden ScenarioComposer but for the
+    fees/charges domain rather than the proactive trigger pipeline. Amounts are
+    grounded in the SAME world + fee rules the chatbot verifies against, so each
+    fixture's pinned resolution is checkable. Ids are self-contained (like the
+    golden scenarios' synthetic customers) and need not exist in the volume set.
+    """
+
+    def __init__(self, world: World) -> None:
+        self.world = world
+        self.rules = fee_rules()
+
+    def all(self) -> list[FeeDispute]:
+        return [self.fd01(), self.fd02(), self.fd03(), self.fd04(), self.fd05()]
+
+    def _daily(self, loc: str, vc: str) -> Decimal:
+        return self.world.nominal_daily_rate(loc, vc)
+
+    def fd01(self) -> FeeDispute:
+        """Late return well beyond the grace period — the extra day stands."""
+        loc, vc = "LON", "CCAR"
+        daily = self._daily(loc, vc)
+        return FeeDispute(
+            dispute_id="FD-01-late-return-upheld",
+            description="Returned 3h beyond the 29-min grace; one extra day is correctly charged.",
+            seed=201, customer_id="hfb-cust-fd01", booking_id="bk-fd01",
+            fee=FeeLine(code=FeeType.late_return, label="Late return (1 extra day)",
+                        amount=daily, currency=self.world.currency(loc), disputed=True,
+                        dispute_reason="Customer feels a few hours late shouldn't cost a full day"),
+            customer_message="Why was I charged an extra day? I was only about 3 hours late.",
+            correct_amount=daily,
+            resolution=DisputeResolution.upheld,
+            grounds="pol-late: beyond the 29-minute grace, each started 24h is one rental day.",
+        )
+
+    def fd02(self) -> FeeDispute:
+        """Returned within the grace period but billed a late day — full refund."""
+        loc, vc = "MAN", "ECAR"
+        daily = self._daily(loc, vc)
+        return FeeDispute(
+            dispute_id="FD-02-late-return-within-grace-refunded",
+            description="Returned 20 min late (inside grace) yet billed a late day; must be reversed.",
+            seed=202, customer_id="hfb-cust-fd02", booking_id="bk-fd02",
+            fee=FeeLine(code=FeeType.late_return, label="Late return (1 extra day)",
+                        amount=daily, currency=self.world.currency(loc), disputed=True,
+                        dispute_reason="Returned within the 29-minute grace period"),
+            customer_message="I dropped the car back 20 minutes late and got charged a whole day?",
+            correct_amount=Decimal("0.00"),
+            resolution=DisputeResolution.refunded,
+            grounds="pol-late: returns within 29 minutes of the due time are not charged.",
+        )
+
+    def fd03(self) -> FeeDispute:
+        """Vehicle never collected and not cancelled — no-show fee stands."""
+        loc, vc = "FRA", "FCAR"
+        daily = self._daily(loc, vc)
+        return FeeDispute(
+            dispute_id="FD-03-no-show-upheld",
+            description="Neither collected nor cancelled before pickup; the one-day no-show fee is valid.",
+            seed=203, customer_id="hfb-cust-fd03", booking_id="bk-fd03",
+            fee=FeeLine(code=FeeType.no_show, label="No-show fee (one rental day)",
+                        amount=daily, currency=self.world.currency(loc), disputed=True,
+                        dispute_reason="Customer says they simply didn't need the car in the end"),
+            customer_message="I didn't take the car at all — why am I being charged a no-show fee?",
+            correct_amount=daily,
+            resolution=DisputeResolution.upheld,
+            grounds="pol-noshow: one rental day applies when a booking is neither collected nor cancelled.",
+        )
+
+    def fd04(self) -> FeeDispute:
+        """Fuel charge over-billed vs the actual shortfall — reduce to correct."""
+        loc, vc = "LON", "IFAR"
+        service = self.rules["fuel_service_charge"]
+        price = self.rules["fuel_price_per_litre"]
+        charged = (service + Decimal(40) * price).quantize(Decimal("0.01"))
+        correct = (service + Decimal(10) * price).quantize(Decimal("0.01"))
+        return FeeDispute(
+            dispute_id="FD-04-fuel-partial-refund",
+            description="Billed for 40 L missing but the actual shortfall was 10 L; reduce to the correct amount.",
+            seed=204, customer_id="hfb-cust-fd04", booking_id="bk-fd04",
+            fee=FeeLine(code=FeeType.fuel, label="Refuelling charge (40 L + service fee)",
+                        amount=charged, currency=self.world.currency(loc), disputed=True,
+                        dispute_reason="Customer says the tank was nearly full on return"),
+            customer_message="You charged me for 40 litres but I filled up right before returning it.",
+            correct_amount=correct,
+            resolution=DisputeResolution.partial_refund,
+            grounds="pol-fuel: charge = service fee + missing litres × price; recomputed to the actual 10 L shortfall.",
+        )
+
+    def fd05(self) -> FeeDispute:
+        """Valid one-way fee, but the customer's verbal-waiver claim can't be
+        verified from the record — hand off to a human."""
+        loc, vc = "LON", "SFAR"
+        ow = self.world.one_way_fee(loc, vc)
+        return FeeDispute(
+            dispute_id="FD-05-one-way-fee-escalated",
+            description="One-way fee is correct, but the alleged branch waiver isn't in the record; needs a human.",
+            seed=205, customer_id="hfb-cust-fd05", booking_id="bk-fd05",
+            fee=FeeLine(code=FeeType.one_way, label="One-way drop-off fee",
+                        amount=ow, currency=self.world.currency(loc), disputed=True,
+                        dispute_reason="Customer says the branch agent verbally waived the one-way fee"),
+            customer_message="The desk told me the one-way fee would be waived, but I was still charged it.",
+            correct_amount=ow,   # the fee is valid; only the unverifiable waiver claim is in dispute
+            resolution=DisputeResolution.escalated_to_human,
+            grounds="A verbal waiver isn't in the booking record and the bot can't verify it -> M07 handoff.",
         )

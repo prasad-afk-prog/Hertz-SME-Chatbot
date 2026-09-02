@@ -95,3 +95,43 @@ Phase 1, immediately after/with M03. ~2 weeks.
 1. Portal→API auth mechanism (mTLS vs signed token)?
 2. Expected event volume (events/sec peak) for sizing?
 3. Is identity available as a verifiable token, or only as a body field?
+
+## 11. Build notes / deviations (A4 — 2026-09-01)
+
+Delivered in `services/event_pipeline/ingestion/`, on the A1 template, writing
+through the A2 Event Store. All 8 §5 tasks implemented; the client-gated pieces
+sit behind seams so the open questions don't block code.
+
+- **Endpoints** (`router.py`): `POST /v1/events`, `POST /v1/events:batch`, plus the
+  template's health/metrics. Outcome→status: accepted/duplicate → **202**,
+  identity_conflict → **409**, rate_limited → **429**, store outage → **503**,
+  malformed → **422**.
+- **Validation + PII allow-list**: the single-event body is the canonical
+  `generator.models.Event` (design principle P3), so FastAPI validates it and
+  `extra='forbid'` on the event/context **is** the field allow-list (POA/15 §4) —
+  an unknown/PII field is a 422 (tested). Deeper redaction is Track B's S4
+  (`generator/pii.py`) and integrates when merged.
+- **Auth (§10.1 open)**: behind a `SourceAuthenticator` protocol —
+  `ApiKeyAuthenticator` (shared-secret, constant-time) today; mTLS or a signed/JWT
+  token slot in behind the same seam, and a JWT variant would set
+  `Principal.customer_id` so **identity binding** (§3.3) becomes a real cross-check.
+  Open (`AllowAllAuthenticator`) only when no key is set, and logged loudly.
+- **Idempotency**: delegated to the store (dedupe on `event_id`); a retry is a
+  202 `duplicate`, never a second row (tested). Redis SET-NX fast-path noted as a
+  future optimisation.
+- **Write-through**: uses A2's transactional outbox (persist + enqueue in one txn);
+  the relay fans out to the stream. End-to-end API→store→outbox→relay→stream is
+  tested.
+- **Rate limiting (§5.7)**: `RateLimiter` seam with an in-memory fixed-window
+  default (per source+customer); prod uses a Redis-backed counter (§8).
+- **Batch (§5.8)**: `:batch` validates each item independently for **partial
+  success** — valid items are written even if others are malformed (tested).
+
+**Deferred:** the real auth mechanism (gated on §10.1), distributed Redis rate
+limiting, and p95-latency / load verification (needs a live Postgres+Redis
+environment; docker-compose is provided). Async SQLAlchemy is a future option —
+kept sync for consistency with the rest of the services layer.
+
+**Acceptance (§6):** valid→202 + stored + on the stream exactly once; duplicate
+deduped; malformed/unauthorised rejected with the right status. Latency-target
+verification awaits the live environment.

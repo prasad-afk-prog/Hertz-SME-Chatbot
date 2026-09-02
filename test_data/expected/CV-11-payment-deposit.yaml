@@ -1,0 +1,7 @@
+outcome: resolved
+required_slots:
+- topic
+all_claims_verified: true
+delivered_excludes: []
+superseded_tokens: []
+min_bot_turns: 1

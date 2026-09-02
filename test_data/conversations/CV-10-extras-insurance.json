@@ -1,0 +1,63 @@
+{
+  "conversation_id": "CV-10-extras-insurance",
+  "intent": "extras_insurance",
+  "description": "Protection-product and extras catalogue question, then adds one.",
+  "seed": 210,
+  "customer_id": "hfb-cust-cv10",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "Do I need the excess cover, and can I add a child seat?",
+      "intent": "extras_insurance",
+      "slots": {
+        "product": "excess_protection",
+        "extra": "child_seat"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Excess protection is optional \u2014 it reduces your damage excess to zero. A child seat is bookable per day, subject to availability at the desk.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "add the child seat to HFB-000126",
+      "intent": "extras_insurance",
+      "slots": {
+        "booking_ref": "HFB-000126"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 4,
+      "speaker": "bot",
+      "text": "Added \u2014 it'll show on your updated confirmation.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "booking_modified",
+    "required_slots": [
+      "extra",
+      "booking_ref"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 2
+  }
+}

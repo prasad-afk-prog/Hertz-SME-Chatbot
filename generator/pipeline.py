@@ -4,6 +4,7 @@ POA/16 §14. JSONL for events, JSON for world/master, YAML for config/scenarios.
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 import yaml
@@ -14,7 +15,7 @@ from .fixtures import default_routing_rules, default_triggers
 from .intents import IntentScenarioComposer
 from .models import Dataset
 from .pii import RedactionFixtureBuilder
-from .scenarios import ScenarioComposer
+from .scenarios import FeeDisputeComposer, ScenarioComposer
 from .volume import VolumeSampler
 from .world import WorldBuilder
 
@@ -24,6 +25,7 @@ def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
     scenarios = ScenarioComposer(world).all()
     conversations = IntentScenarioComposer(world).all()
     redaction_fixtures = RedactionFixtureBuilder().all()
+    fee_disputes = FeeDisputeComposer(world).all()   # S2 — POA/16 §16.1
     rate_plans = catalogue_rate_plans()
 
     companies: list = []
@@ -55,6 +57,8 @@ def build(cfg: GenConfig, include_volume: bool = True) -> Dataset:
         policies=world.policies,
         conversations=conversations,
         redaction_fixtures=redaction_fixtures,
+        fee_disputes=fee_disputes,
+        load_profile=asdict(cfg.load),
     )
 
 
@@ -76,7 +80,7 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
     """Write the dataset; returns the paths written."""
     written: list[Path] = []
     for sub in ("world", "master", "events/golden", "events/volume", "config", "scenarios", "expected",
-                "conversations", "fixtures"):
+                "conversations", "fixtures", "disputes"):
         (out / sub).mkdir(parents=True, exist_ok=True)
 
     # world (always)
@@ -92,6 +96,8 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
     # config (always)
     _dump_yaml(out / "config/triggers.yaml", [m.model_dump(mode="json") for m in ds.triggers]); written.append(out / "config/triggers.yaml")
     _dump_yaml(out / "config/routing_rules.yaml", [m.model_dump(mode="json") for m in ds.routing_rules]); written.append(out / "config/routing_rules.yaml")
+    # load/SLA profile (always) — S5 (POA/16 §16.3) targets for the soak/load tier
+    _dump_yaml(out / "config/load_profile.yaml", ds.load_profile); written.append(out / "config/load_profile.yaml")
     # rate plans (always) — small negotiated-plan catalogue
     _dump_jsonl(out / "master/rate_plans.jsonl", ds.rate_plans); written.append(out / "master/rate_plans.jsonl")
 
@@ -112,6 +118,10 @@ def write(ds: Dataset, out: Path, tier: str = "all") -> list[Path]:
         pf = out / "fixtures/pii_redaction.json"
         _dump_json(pf, [m.model_dump(mode="json") for m in ds.redaction_fixtures])
         written.append(pf)
+        # fee-dispute fixtures (S2 — POA/16 §16.1)
+        for fd in ds.fee_disputes:
+            p = out / f"disputes/{fd.dispute_id}.json"
+            _dump_json(p, fd.model_dump(mode="json")); written.append(p)
 
     # volume tier
     if tier in ("all", "volume"):

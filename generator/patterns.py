@@ -12,7 +12,6 @@ Deferred signals:
 """
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from random import Random
@@ -20,6 +19,7 @@ from typing import Protocol
 
 from .clock import Clock
 from .models import BookingStep, Event, EventContext, SignalType
+from .rng import stable_uuid
 from .world import World
 
 
@@ -66,12 +66,13 @@ class SessionCtx:
                 vehicle_class=search.vehicle_class,
             )
         base.update(ctx)
+        occurred_at = self.clock.tick(self.rng.randint(2, 30))
         return Event(
-            event_id=str(uuid.uuid4()),
+            event_id=stable_uuid(self.customer_id, self.session_id, signal.value, occurred_at.isoformat()),
             customer_id=self.customer_id,
             session_id=self.session_id,
             signal_type=signal,
-            occurred_at=self.clock.tick(self.rng.randint(2, 30)),
+            occurred_at=occurred_at,
             context=EventContext(**base),
         )
 

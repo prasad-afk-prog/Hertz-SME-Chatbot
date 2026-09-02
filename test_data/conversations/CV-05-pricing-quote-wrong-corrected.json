@@ -1,0 +1,66 @@
+{
+  "conversation_id": "CV-05-pricing-quote-wrong-corrected",
+  "intent": "pricing_quote",
+  "description": "Bot under-quotes against the live world; M10 must correct it \u2014 the wrong figure must never reach the customer.",
+  "seed": 205,
+  "customer_id": "hfb-cust-cv05",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "How much is an Economy at Manchester for three days?",
+      "intent": "pricing_quote",
+      "slots": {
+        "pickup": "MAN",
+        "vehicle_class": "ECAR"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "That's \u00a323.97/day.",
+      "intent": null,
+      "slots": {},
+      "claims": [
+        {
+          "kind": "price",
+          "pickup": "MAN",
+          "dropoff": "MAN",
+          "pickup_at": "2026-09-01T10:00:00Z",
+          "return_at": "2026-09-04T10:00:00Z",
+          "vehicle_class": "ECAR",
+          "quoted_price": "23.97",
+          "quoted_available": null,
+          "text_token": "\u00a323.97"
+        }
+      ],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "ok thanks",
+      "intent": "pricing_quote",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "pickup",
+      "vehicle_class"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [
+      "\u00a323.97"
+    ],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

@@ -53,6 +53,31 @@ _LOCATIONS = [
              address="Av. de la Hispanidad, 28042 Madrid", opening_hours="Mon-Sun 07:00-23:00"),
 ]
 
+# S1 (POA/16 §16.2) — additive city / suburban / new-region stations. Kept in a
+# SEPARATE list so build() passes 1 & 2 iterate the ORIGINAL six only and the
+# car/van RNG sequence (hence the golden-scenario prices) is unchanged.
+_EXTRA_LOCATIONS = [
+    Location(location_id="LON", name="London City (Marble Arch)", country="GB", region="UK",
+             timezone="Europe/London", type=LocationType.city, currency="GBP",
+             address="Marble Arch, London W1H 7EJ", opening_hours="Mon-Sun 07:00-20:00"),
+    Location(location_id="CRY", name="London Croydon", country="GB", region="UK",
+             timezone="Europe/London", type=LocationType.suburban, currency="GBP",
+             address="Purley Way, Croydon CR0 4RE", opening_hours="Mon-Sat 08:00-18:00"),
+    Location(location_id="PARC", name="Paris Gare de Lyon", country="FR", region="FR",
+             timezone="Europe/Paris", type=LocationType.city, currency="EUR",
+             address="Place Louis Armand, 75012 Paris", opening_hours="Mon-Sun 07:00-21:00"),
+    Location(location_id="MADS", name="Madrid Alcalá de Henares", country="ES", region="ES",
+             timezone="Europe/Madrid", type=LocationType.suburban, currency="EUR",
+             address="Av. de Madrid 10, 28802 Alcalá de Henares", opening_hours="Mon-Sat 08:00-19:00"),
+    Location(location_id="JFK", name="New York JFK", country="US", region="US",
+             timezone="America/New_York", type=LocationType.airport, currency="USD",
+             address="JFK Airport, Queens, NY 11430", opening_hours="Mon-Sun 06:00-23:00"),
+    Location(location_id="NYC", name="New York Midtown", country="US", region="US",
+             timezone="America/New_York", type=LocationType.city, currency="USD",
+             address="W 43rd St, New York, NY 10036", opening_hours="Mon-Sun 07:00-20:00"),
+]
+_ALL_LOCATIONS = _LOCATIONS + _EXTRA_LOCATIONS
+
 _CAR_CLASSES = [
     VehicleClass(code="ECAR", label="Economy", example_model="VW Polo", category=VehicleCategory.car,
                  seats=5, doors=3, transmission=Transmission.manual, fuel_type=FuelType.petrol,
@@ -80,17 +105,57 @@ _VAN_CLASSES = [
                  luggage=0, deposit=Decimal("500.00"), min_driver_age=25, mileage_policy="limited-250mi/day"),
 ]
 
-_VEHICLE_CLASSES = _CAR_CLASSES + _VAN_CLASSES
+# S1 (POA/16 §16.2) — the rest of the 12-class Hertz-style taxonomy, mapped to
+# ACRISS-style codes. Additive: emitted only in build() pass 3, so the original
+# car/van RNG sequence and the golden-scenario prices are unchanged. (The legacy
+# generic "SUV" code is retained for backward-compat with existing golden
+# scenarios/fixtures; with these four it becomes the coarse SUV tier.)
+_EXTRA_CLASSES = [
+    VehicleClass(code="PCAR", label="Premium", example_model="BMW 5 Series", category=VehicleCategory.car,
+                 seats=5, doors=5, transmission=Transmission.automatic, fuel_type=FuelType.diesel,
+                 luggage=3, deposit=Decimal("350.00"), min_driver_age=25, mileage_policy="unlimited"),
+    VehicleClass(code="LCAR", label="Luxury", example_model="Mercedes-Benz E-Class", category=VehicleCategory.car,
+                 seats=5, doors=5, transmission=Transmission.automatic, fuel_type=FuelType.petrol,
+                 luggage=3, deposit=Decimal("500.00"), min_driver_age=30, mileage_policy="unlimited"),
+    VehicleClass(code="CFAR", label="Compact SUV", example_model="Nissan Juke", category=VehicleCategory.car,
+                 seats=5, doors=5, transmission=Transmission.automatic, fuel_type=FuelType.petrol,
+                 luggage=2, deposit=Decimal("300.00"), min_driver_age=23, mileage_policy="unlimited"),
+    VehicleClass(code="IFAR", label="Midsize SUV", example_model="Volkswagen Tiguan", category=VehicleCategory.car,
+                 seats=5, doors=5, transmission=Transmission.automatic, fuel_type=FuelType.diesel,
+                 luggage=3, deposit=Decimal("350.00"), min_driver_age=25, mileage_policy="unlimited"),
+    VehicleClass(code="SFAR", label="Full-size SUV", example_model="Audi Q7", category=VehicleCategory.car,
+                 seats=7, doors=5, transmission=Transmission.automatic, fuel_type=FuelType.diesel,
+                 luggage=4, deposit=Decimal("450.00"), min_driver_age=25, mileage_policy="unlimited"),
+    VehicleClass(code="LFAR", label="Special/Luxury SUV", example_model="Range Rover", category=VehicleCategory.car,
+                 seats=5, doors=5, transmission=Transmission.automatic, fuel_type=FuelType.diesel,
+                 luggage=4, deposit=Decimal("750.00"), min_driver_age=30, mileage_policy="unlimited"),
+    VehicleClass(code="IVAR", label="Minivan", example_model="Ford Galaxy", category=VehicleCategory.car,
+                 seats=7, doors=5, transmission=Transmission.automatic, fuel_type=FuelType.diesel,
+                 luggage=4, deposit=Decimal("350.00"), min_driver_age=25, mileage_policy="unlimited"),
+    VehicleClass(code="PPAR", label="Pickup Truck", example_model="Ford Ranger", category=VehicleCategory.car,
+                 seats=5, doors=4, transmission=Transmission.automatic, fuel_type=FuelType.diesel,
+                 luggage=2, deposit=Decimal("400.00"), min_driver_age=25, mileage_policy="limited-250mi/day"),
+]
 
-# base daily rate per class (GBP)
-_BASE_RATE = {"ECAR": 32, "CCAR": 38, "ICAR": 46, "FCAR": 55, "SUV": 72, "PVAN": 65, "LVAN": 85}
-# location multiplier
-_LOC_MULT = {"LHR": 1.15, "MAN": 1.0, "EDI": 1.05, "FRA": 1.1, "CDG": 1.12, "MAD": 0.95}
+_V02_CLASSES = _CAR_CLASSES + _VAN_CLASSES              # what passes 1 & 2 emit (unchanged)
+_VEHICLE_CLASSES = _V02_CLASSES + _EXTRA_CLASSES        # the full published taxonomy
+
+# base daily rate per class (GBP-equivalent list price; per-location multiplier applies)
+_BASE_RATE = {"ECAR": 32, "CCAR": 38, "ICAR": 46, "FCAR": 55, "SUV": 72, "PVAN": 65, "LVAN": 85,
+              "PCAR": 70, "LCAR": 110, "CFAR": 60, "IFAR": 75, "SFAR": 95, "LFAR": 140,
+              "IVAR": 80, "PPAR": 78}
+# location multiplier (new city stations pricier, suburban cheaper, US premium)
+_LOC_MULT = {"LHR": 1.15, "MAN": 1.0, "EDI": 1.05, "FRA": 1.1, "CDG": 1.12, "MAD": 0.95,
+             "LON": 1.10, "CRY": 0.90, "PARC": 1.08, "MADS": 0.88, "JFK": 1.20, "NYC": 1.25}
 # one-way drop fee per class (GBP)
-_ONE_WAY_FEE = {"ECAR": 45, "CCAR": 45, "ICAR": 55, "FCAR": 65, "SUV": 75, "PVAN": 95, "LVAN": 120}
+_ONE_WAY_FEE = {"ECAR": 45, "CCAR": 45, "ICAR": 55, "FCAR": 65, "SUV": 75, "PVAN": 95, "LVAN": 120,
+                "PCAR": 75, "LCAR": 120, "CFAR": 70, "IFAR": 80, "SFAR": 95, "LFAR": 140,
+                "IVAR": 95, "PPAR": 90}
 # deposit per class (mirrors the VehicleClass attribute, for O(1) lookup)
 _DEPOSIT = {v.code: v.deposit for v in _VEHICLE_CLASSES}
-_CURRENCY = {loc.location_id: loc.currency for loc in _LOCATIONS}
+_CURRENCY = {loc.location_id: loc.currency for loc in _ALL_LOCATIONS}
+# country per station — one-way is domestic-only (cross-border needs approval, see policies)
+_COUNTRY = {loc.location_id: loc.country for loc in _ALL_LOCATIONS}
 
 
 class World:
@@ -150,6 +215,23 @@ class World:
         base = Decimal(_BASE_RATE.get(vehicle_class, 45)) * Decimal(str(_LOC_MULT.get(location_id, 1.0)))
         return base.quantize(Decimal("0.01"))
 
+    # --- one-way (S1 — POA/16 §16.2) ------------------------------------ #
+    def one_way_fee(self, location_id: str, vehicle_class: str) -> Decimal:
+        """The nominal one-way drop fee for dropping a class off away from its
+        pickup station. Date-independent list value (mirrors RateCard.one_way_fee)."""
+        return Decimal(_ONE_WAY_FEE.get(vehicle_class, 50)).quantize(Decimal("0.01"))
+
+    def allows_one_way(self, pickup: str, dropoff: str) -> bool:
+        """One-way is offered domestically; cross-border needs prior approval
+        (see the cross-border policy), so it's excluded from generated bookings."""
+        if pickup == dropoff:
+            return False
+        return _COUNTRY.get(pickup) is not None and _COUNTRY.get(pickup) == _COUNTRY.get(dropoff)
+
+    def one_way_destinations(self, pickup: str) -> list[str]:
+        """Valid drop-off stations for a one-way rental picked up at `pickup`."""
+        return [lid for lid in self.location_ids if self.allows_one_way(pickup, lid)]
+
 
 class WorldBuilder:
     def __init__(self, seed: int, start: date | None = None, days: int = 90) -> None:
@@ -198,7 +280,22 @@ class WorldBuilder:
                     card, av = self._rate_card(loc, vc, d, weekend)
                     rate_cards.append(card)
                     availability.append(av)
+        # Pass 3 (S1 — POA/16 §16.2): additive — the new taxonomy classes at every
+        # station, and every class at the new city/suburban/region stations. Runs
+        # AFTER passes 1 & 2 so their RNG draws (and the golden prices) are
+        # untouched; `covered` is exactly the (station, class) pairs those emitted.
+        covered = {(loc.location_id, vc.code) for loc in _LOCATIONS for vc in _V02_CLASSES}
+        for i in range(self.days):
+            d = self.start + timedelta(days=i)
+            weekend = d.weekday() >= 5
+            for loc in _ALL_LOCATIONS:
+                for vc in _VEHICLE_CLASSES:
+                    if (loc.location_id, vc.code) in covered:
+                        continue
+                    card, av = self._rate_card(loc, vc, d, weekend)
+                    rate_cards.append(card)
+                    availability.append(av)
         return World(
-            _LOCATIONS, _VEHICLE_CLASSES, rate_cards, availability, self.start, self.end,
+            _ALL_LOCATIONS, _VEHICLE_CLASSES, rate_cards, availability, self.start, self.end,
             protection_products=_protection(), extras=_extras(), policies=_policies(),
         )

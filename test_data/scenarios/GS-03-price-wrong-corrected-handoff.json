@@ -36,7 +36,7 @@
   },
   "events": [
     {
-      "event_id": "06a01c55-c087-4cf4-8e67-6710c4567223",
+      "event_id": "a4ded069-8cb1-5b3b-822a-0cd0fd08db99",
       "customer_id": "hfb-cust-gs03",
       "session_id": "sess-gs03-00",
       "signal_type": "rate_view_no_progress",

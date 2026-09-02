@@ -22,11 +22,15 @@ drives the correct outcomes **before the real M02–M14 services exist**.
 ## Quick start
 
 ```bash
-pip install -r requirements-dev.txt          # pydantic, pyyaml, pytest, anthropic
-python -m pytest                              # 320 tests, all green
+pip install -r requirements-dev.txt          # generator + services + test deps
+python -m pytest                              # 420 tests, all green
 python -m generator build --seed 42 --tier golden --out test_data
 python -m generator build --seed 42 --tier volume --customers 1000 --out test_data
 ```
+
+The generator is pure `pydantic + pyyaml`; the **services** (Track A/B, see below)
+add `fastapi + pydantic-settings + prometheus-client`. `requirements-dev.txt`
+installs everything.
 
 ## Layout
 
@@ -63,7 +67,14 @@ services/         the real services
   conversation/orchestrator/         M08 - context, personalisation, prompts, state, pipeline
   admin/config/                      M13 - versioned config, audit, validation, hot-reload
 tests/            pytest suite (contracts, world, patterns, golden, verification,
-                  invariants, business, conversation intents, PII, repository, M10)
+                  invariants, business, conversation intents, PII, repository,
+                  fees/disputes, taxonomy/stations, load config, platform skeleton,
+                  and the Track-B services M08-M11, M13)
+services/         service code (built on the generator's contract models)
+  platform/       shared FastAPI/Celery template — create_app() wires logging,
+                  correlation-id, Prometheus /metrics, OTel seam, health/readyz,
+                  error handling, lazy Postgres/Redis/Celery factories (M15)
+  event_pipeline/ Track A: event & trigger pipeline (A2–A8 land here)
 ```
 
 ### Generated files (`test_data/`)
@@ -73,8 +84,9 @@ world/    locations · vehicle_classes · rate_cards · availability
           protection_products · extras · policies            (v0.2 catalogues)
 master/   customers · bookings · rate_plans                  (rate_plans always)
           companies · invoices                               (v0.2 business layer, volume tier)
-config/   triggers · routing_rules
+config/   triggers · routing_rules · load_profile        (load_profile: S5 load/SLA targets)
 scenarios/ + expected/   7 golden scenarios and their pinned outcomes
+disputes/                5 hand-authored fee-dispute fixtures (S2)
 events/volume/           bulk behavioural events
 conversations/           17 scripted conversation trees (one per intent)
 fixtures/                pii_redaction.json — 13 PII redaction fixtures
@@ -115,6 +127,32 @@ the mock returns the world's true £52.21, and the verifier must correct/strip i
 | `test_repository_compat.py` | S6: the repository agrees with the world on **every** rate/availability key; an unrelated implementation satisfies the same protocol; coercion renames/maps/drops **and reports**; the strict models are still strict; a typo'd enum target in `field_map.yaml` fails at load |
 | `test_pii_redaction.py` | S4: synthetic PII is provably fake (cards fail Luhn, emails RFC 2606, phones Ofcom drama block, IPs RFC 5737); spans are exact; redaction removes all PII **and nothing else**; the PII field marking still matches the models |
 | `test_conversation_intents.py` | all 17 POA/16 §16.4 intents covered; conversation claims grounded in the world; wrong quotes differ from live data and are excluded; mid-conversation requirement changes override slots; the reply source is swappable (§16.6 Phase-2 seam) |
+| `test_taxonomy_stations.py` | S1: 12-class taxonomy + airport/city/suburban stations + US/USD region present; one-way is domestic-only; golden prices unchanged |
+| `test_fees_and_disputes.py` | S2: one-way/late-return/no-show/fuel fees generated & some disputed; late-return grace/day rule; 5 dispute fixtures internally consistent |
+| `test_load_config.py` | S5: LoadProfile knobs match the §16.3 targets and are exposed to the load tier |
+| `test_platform_skeleton.py` | A1: the shared template scaffolds a module with health/readyz, metrics, correlation-id and error handling wired in (POA/15 §7) |
+
+## Services (Track A / Track B)
+
+Service code lives in `services/` (repo layout ratified in
+[`POA/15 §12`](POA/15_POA_Platform_Infra_Security_Observability.md)). Every module
+is built from the shared `services.platform` template:
+
+```python
+from services.platform import create_app
+app = create_app("event-pipeline")   # health, /metrics, logging, tracing, errors wired in
+```
+
+Run the Track A service and the local stack:
+
+```bash
+uvicorn services.event_pipeline.main:app --reload        # http://localhost:8000
+#   GET /healthz  ·  /readyz  ·  /metrics  ·  /docs
+docker compose up                                        # Postgres + Redis + service
+```
+
+Config is env-driven (`HFB_*`; copy `.env.example` → `.env`) — no secrets in code.
+CI (`.github/workflows/ci.yml`) runs the pytest matrix and `ruff check services`.
 
 ## Extending
 

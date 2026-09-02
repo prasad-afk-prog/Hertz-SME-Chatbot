@@ -64,5 +64,71 @@
     "address": "Av. de la Hispanidad, 28042 Madrid",
     "opening_hours": "Mon-Sun 07:00-23:00",
     "currency": "EUR"
+  },
+  {
+    "location_id": "LON",
+    "name": "London City (Marble Arch)",
+    "country": "GB",
+    "region": "UK",
+    "timezone": "Europe/London",
+    "type": "city",
+    "address": "Marble Arch, London W1H 7EJ",
+    "opening_hours": "Mon-Sun 07:00-20:00",
+    "currency": "GBP"
+  },
+  {
+    "location_id": "CRY",
+    "name": "London Croydon",
+    "country": "GB",
+    "region": "UK",
+    "timezone": "Europe/London",
+    "type": "suburban",
+    "address": "Purley Way, Croydon CR0 4RE",
+    "opening_hours": "Mon-Sat 08:00-18:00",
+    "currency": "GBP"
+  },
+  {
+    "location_id": "PARC",
+    "name": "Paris Gare de Lyon",
+    "country": "FR",
+    "region": "FR",
+    "timezone": "Europe/Paris",
+    "type": "city",
+    "address": "Place Louis Armand, 75012 Paris",
+    "opening_hours": "Mon-Sun 07:00-21:00",
+    "currency": "EUR"
+  },
+  {
+    "location_id": "MADS",
+    "name": "Madrid Alcal\u00e1 de Henares",
+    "country": "ES",
+    "region": "ES",
+    "timezone": "Europe/Madrid",
+    "type": "suburban",
+    "address": "Av. de Madrid 10, 28802 Alcal\u00e1 de Henares",
+    "opening_hours": "Mon-Sat 08:00-19:00",
+    "currency": "EUR"
+  },
+  {
+    "location_id": "JFK",
+    "name": "New York JFK",
+    "country": "US",
+    "region": "US",
+    "timezone": "America/New_York",
+    "type": "airport",
+    "address": "JFK Airport, Queens, NY 11430",
+    "opening_hours": "Mon-Sun 06:00-23:00",
+    "currency": "USD"
+  },
+  {
+    "location_id": "NYC",
+    "name": "New York Midtown",
+    "country": "US",
+    "region": "US",
+    "timezone": "America/New_York",
+    "type": "city",
+    "address": "W 43rd St, New York, NY 10036",
+    "opening_hours": "Mon-Sun 07:00-20:00",
+    "currency": "USD"
   }
 ]

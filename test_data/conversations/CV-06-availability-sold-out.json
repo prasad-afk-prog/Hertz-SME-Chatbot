@@ -1,0 +1,66 @@
+{
+  "conversation_id": "CV-06-availability-sold-out",
+  "intent": "vehicle_availability",
+  "description": "Requested class has zero availability in the world; a positive claim must be corrected, not delivered.",
+  "seed": 206,
+  "customer_id": "hfb-cust-cv06",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "Do you have anything for pickup tomorrow?",
+      "intent": "vehicle_availability",
+      "slots": {
+        "pickup": "LHR",
+        "vehicle_class": "CCAR"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Yes, that class is available at your location.",
+      "intent": null,
+      "slots": {},
+      "claims": [
+        {
+          "kind": "availability",
+          "pickup": "LHR",
+          "dropoff": "LHR",
+          "pickup_at": "2026-09-01T10:00:00Z",
+          "return_at": "2026-09-04T10:00:00Z",
+          "vehicle_class": "CCAR",
+          "quoted_price": null,
+          "quoted_available": true,
+          "text_token": "available"
+        }
+      ],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "ok",
+      "intent": "vehicle_availability",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "pickup",
+      "vehicle_class"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [
+      "available"
+    ],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

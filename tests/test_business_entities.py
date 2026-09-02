@@ -44,10 +44,19 @@ def test_van_classes_exist(world):
 
 
 def test_per_location_currency(world):
-    # EUR markets must not be priced in GBP
-    eur = {"FRA", "CDG", "MAD"}
+    # Currency is a function of country and consistent within each country
+    # (S1 added city/suburban stations + a US/USD region — POA/16 §16.2).
+    expected = {"GB": "GBP", "DE": "EUR", "FR": "EUR", "ES": "EUR", "IE": "EUR", "US": "USD"}
+    by_country: dict[str, set] = {}
     for loc in world.locations:
-        assert loc.currency == ("EUR" if loc.location_id in eur else "GBP")
+        assert loc.country in expected, f"no currency rule for country {loc.country!r}"
+        assert loc.currency == expected[loc.country], (
+            f"{loc.location_id} ({loc.country}) should price in "
+            f"{expected[loc.country]}, got {loc.currency}"
+        )
+        by_country.setdefault(loc.country, set()).add(loc.currency)
+    for country, currencies in by_country.items():
+        assert len(currencies) == 1, f"{country} has inconsistent currencies {currencies}"
 
 
 def test_business_customers_link_to_a_real_plan(sampled):

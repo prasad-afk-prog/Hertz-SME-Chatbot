@@ -250,15 +250,15 @@ it. Kept this way, git merges the two halves cleanly.
 
 | Item | Owner | Status | Notes |
 |---|---|---|---|
-| S1 Taxonomy & stations | Prasad | not started | |
-| S2 Fee completeness | Prasad | not started | |
-| S5 Load/SLA knobs | Prasad | not started | |
-| A1 Platform skeleton | Prasad | not started | |
-| A2 Event Store | Prasad | not started | |
+| S1 Taxonomy & stations | Prasad | in progress | 2026-09-01 implemented+tested locally: 12-class taxonomy (additive world pass-3, golden prices byte-stable), city/suburban + US/USD stations, one-way helpers + config knob |
+| S2 Fee completeness | Prasad | in progress | 2026-09-01 implemented+tested locally: one-way + late-return/no-show/fuel fees & disputes, FeeLine/FeeDispute models, 5 dispute fixtures |
+| S5 Load/SLA knobs | Prasad | in progress | 2026-09-01 implemented+tested locally: LoadProfile (eps/concurrency/SLA/mock-timeout) on GenConfig, exposed via volume + config/load_profile.yaml |
+| A1 Platform skeleton | Prasad | in progress | 2026-09-01 done+tested: services/platform/ template (create_app: logging, correlation-id, Prometheus /metrics, OTel seam, health/readyz, errors, lazy pg/redis/celery factories) + booting services/event_pipeline/ + docker-compose + Dockerfile + CI + .env.example; repo layout ratified in POA/15 §12; 8 tests |
+| A2 Event Store | Prasad | in progress | 2026-09-01 core done + downstream-ready: Postgres schema + idempotent transactional write+outbox, at-least-once Redis-stream relay (property-tested), read models (recent/session/repeated-search), postgres readiness. Runs on Postgres/prod + SQLite/tests. Deferred: retention/partition job, signal-J booking backfill, live-Redis integration (POA/03 §11) |
 | A3 Event Capture SDK | Prasad | not started | |
-| A4 Ingestion API | Prasad | not started | |
-| A5 Trigger Evaluation | Prasad | not started | |
-| A6 Frequency/Precedence | Prasad | not started | |
+| A4 Ingestion API | Prasad | in progress | 2026-09-01 core done + tested: POST /v1/events + /v1/events:batch (partial-success) writing through A2's outbox; Event-schema validation = PII allow-list (extra=forbid); auth + identity-binding + rate-limit behind seams (API key today, mTLS/JWT later); idempotent via store dedupe; 202/409/429/503/422 mapping; e2e API→store→relay→stream tested. Deferred: real auth mechanism (§10.1), Redis rate limiter, load verification (POA/02 §11) |
+| A5 Trigger Evaluation | Prasad | in progress | 2026-09-01 core done + tested: sandboxed field/op/value rule DSL (no eval), node-N routing (in-session→A6 reserve→FireMessage/M08, deferred→queue, drop), idempotency guard, contracts as sinks not calls (§5). FireMessage added to generator/models.py (carries A6 reservation_id). e2e store→relay→parse→evaluate→fire tested. Deferred: I/J derivation workers (need A7), rule hot-reload, handoff branch (§10.3), consumer partitioning (POA/04 §11) |
+| A6 Frequency/Precedence | Prasad | in progress | 2026-09-01 core done + tested: engagement ledger + sliding-window caps (delegates reference.would_fire), per-customer global cap + cooldown, deterministic precedence (weight→specificity→recency→id), atomic reserve under a per-customer lock (concurrency invariant tested), reserve→confirm/rollback so a failed send doesn't burn the cap, suppression reasons for M14. CROSS-TRACK: A6→M08 contract (MatchCandidate/EngagementDecision/SuppressionReason) added to generator/models.py — reconcile with Shagun's local §5 handshake. Deferred: Redis counters, reservation TTL sweep, M13 cap config (POA/05 §11) |
 | A7 Pending Queue/Scheduler | Prasad | not started | |
 | A8 Human Handoff | Prasad | not started | keep thin around RoutingRule dicts |
 | S3 Intent scenarios / scripted trees | Shagun | DONE | generator/intents.py, 17 intents, 23 tests |
@@ -282,11 +282,10 @@ Issues or a Project board — outside git, so it has no merge semantics at all.
 1. ~~**Confirm track ownership** (§3).~~ **RESOLVED 2026-09-01** — Prasad takes
    Track A (event/trigger pipeline + platform, POA 01–07 & 15), Shagun takes
    Track B (conversation, config, reporting, POA 08–14).
-2. **Repo layout for service code.** No POA specifies one — `POA/16 §14`
-   covers only `test_data/`/`generator/`/`mocks/`, and `POA/15` has no layout
-   section. This document assumes `services/event_pipeline/`,
-   `services/platform/`, `services/conversation/`. Agree on it before A1/B1
-   start, and record the answer in `POA/15` so it has a single home.
+2. ~~**Repo layout for service code.**~~ **RESOLVED 2026-09-01** — ratified the
+   `services/` monorepo this document assumed (`services/platform/` shared
+   template, `services/event_pipeline/` Track A, `services/conversation/` Track
+   B), recorded in `POA/15 §12`. Delivered by A1.
 3. **Branch protection on `main`** — required PR review, no direct pushes.
    Worth enabling once both branches exist, so a bad merge can't land without
    the other person seeing the diff.

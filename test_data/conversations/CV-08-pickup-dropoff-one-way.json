@@ -1,0 +1,52 @@
+{
+  "conversation_id": "CV-08-pickup-dropoff-one-way",
+  "intent": "pickup_dropoff_question",
+  "description": "Station logistics + a one-way request (POA/16 \u00a716.2 adds one-way bookings).",
+  "seed": 208,
+  "customer_id": "hfb-cust-cv08",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "Can I collect at Heathrow and drop off in Manchester?",
+      "intent": "pickup_dropoff_question",
+      "slots": {
+        "pickup": "LHR",
+        "dropoff": "MAN"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Yes \u2014 that's a one-way rental. There's a one-way fee and the drop-off desk closes at 23:00. Want me to price it?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "not yet, just checking",
+      "intent": "pickup_dropoff_question",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "pickup",
+      "dropoff"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

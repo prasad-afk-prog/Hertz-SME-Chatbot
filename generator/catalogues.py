@@ -22,6 +22,28 @@ from .models import (
 
 
 # --------------------------------------------------------------------------- #
+# Fee rules (S2 — POA/16 §16.1; §16.7(3) "pricing/fee rules" kept configurable)
+#
+# Single source of truth for post-rental charges so generated bookings, the
+# hand-authored dispute fixtures and the policy text below never drift apart.
+# Amounts are business-realistic placeholders to be swapped for the client's.
+# --------------------------------------------------------------------------- #
+FEE_RULES = {
+    "late_return_grace_minutes": 29,             # grace before a late-return day is charged
+    "no_show_days_charged": 1,                   # no-show = one rental-day equivalent
+    "fuel_service_charge": Decimal("15.00"),     # flat refuelling service fee
+    "fuel_price_per_litre": Decimal("1.75"),     # missing-fuel cost basis
+    "tank_litres": 60,                           # nominal tank size for fuel maths
+}
+
+
+def fee_rules() -> dict:
+    """The post-rental fee rules as a fresh dict (callers may read but not mutate
+    the module constant)."""
+    return dict(FEE_RULES)
+
+
+# --------------------------------------------------------------------------- #
 # Protection / insurance products (M10 verifiable "included cover" queries)
 # --------------------------------------------------------------------------- #
 def protection_products() -> list[ProtectionProduct]:
@@ -109,8 +131,18 @@ def policies() -> list[Policy]:
                summary="Cross-border and one-way travel must be declared and may need prior approval.",
                detail="Some countries are excluded; a one-way fee and additional cover may apply."),
         Policy(policy_id="pol-late", topic=PolicyTopic.late_return, applies_to="all",
-               summary="A 29-minute grace period applies; beyond it a further rental day may be charged.",
-               detail="Please contact the branch if you expect to return late to avoid extra charges."),
+               summary="A 29-minute grace period applies; beyond it a further rental day is charged per started day.",
+               detail="Returns within 29 minutes of the due time are not charged. Beyond the grace period, each "
+                      "started 24-hour period is charged as an additional rental day at the booking's daily rate. "
+                      "Please contact the branch if you expect to return late."),
+        Policy(policy_id="pol-noshow", topic=PolicyTopic.no_show, applies_to="all",
+               summary="Not collecting a booked vehicle without cancelling is a no-show; one rental day is charged.",
+               detail="A no-show fee equal to one rental day applies when a reserved vehicle is not collected and the "
+                      "booking was not cancelled before pickup. Prepaid rates may be non-refundable."),
+        Policy(policy_id="pol-oneway", topic=PolicyTopic.cross_border, applies_to="all",
+               summary="One-way rentals (a different drop-off station) are available within a country for a one-way fee.",
+               detail="The one-way fee varies by vehicle class and route and is shown at booking. Cross-border one-way "
+                      "must be declared and may need prior approval; some countries are excluded."),
     ]
 
 

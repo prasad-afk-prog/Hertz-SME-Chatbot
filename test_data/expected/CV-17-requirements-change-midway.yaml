@@ -1,0 +1,11 @@
+outcome: booking_created
+required_slots:
+- pickup
+- vehicle_class
+- pickup_at
+- return_at
+all_claims_verified: true
+delivered_excludes: []
+superseded_tokens:
+- £36.99
+min_bot_turns: 3

@@ -1,0 +1,61 @@
+{
+  "conversation_id": "CV-09-fees-late-return",
+  "intent": "fees_and_charges",
+  "description": "Late-return charge explained from the fee rules, not invented.",
+  "seed": 209,
+  "customer_id": "hfb-cust-cv09",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "What happens if I bring it back a day late?",
+      "intent": "fees_and_charges",
+      "slots": {
+        "fee_type": "late_return"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "There's a grace period of 29 minutes; past that you're charged a further rental day at the standard rate, plus a late-return fee.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "and if I don't turn up at all?",
+      "intent": "fees_and_charges",
+      "slots": {
+        "fee_type": "no_show"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 4,
+      "speaker": "bot",
+      "text": "A no-show is charged at one rental day and the booking is released.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "fee_type"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 2
+  }
+}
