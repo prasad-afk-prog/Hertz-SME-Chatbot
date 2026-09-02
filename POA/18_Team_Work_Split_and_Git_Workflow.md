@@ -159,6 +159,34 @@ Whoever needs a contract change adds it to `generator/models.py`, runs
 `pytest`, and says so explicitly at day-end. Don't assume the other person
 spots it in the diff.
 
+## 5b. OPEN — everything waiting on Prasad, in one place
+
+*Added 2026-09-02. These have accumulated across six Track-B modules and have
+been raised piecemeal in day-end notes without landing. Collected here because
+they are answerable in one sitting, and scattered mentions have not worked.*
+
+**Nothing below is urgent for Prasad's own work. All of it blocks Shagun's.**
+
+| # | Question | Blocks | Cost of guessing |
+|---|---|---|---|
+| 1 | **Confirm the `services/` layout.** Six modules now live under `services/conversation/*` and `services/admin/config/` on the assumption in §8.2. | Nothing yet — but every new module raises the cost | A rename across six modules and ~320 tests |
+| 2 | **Engagement reservation contract** (§5 item 5). Who mints the reservation id? Is `rollback` idempotent? What if `confirm` itself fails? | M08 ships a stub; M12 will need the real one | A customer silently loses a capped engagement they never received |
+| 3 | **Config hot-reload consumer contract** (§5 item 6). M13 publishes `(entity, entity_id, version, enabled)`. Do M04/M05/M06/M07 want that, or a payload? | M13 task 4 | Config/runtime drift — POA/13 §8's second risk |
+| 4 | **Who owns the rule DSL validator?** `TriggerMatch.conditions` is untyped `list[dict]`. POA/13 §8 says *one* validator shared with M04. M13 ships a named seam and validates nothing inside it. | M13 tasks 2 & 7 | Two validators that disagree — the exact divergence §8 warns about |
+| 5 | **M04 and M07 message contracts** — even draft shapes would do. | All of POA/12 | Two more guessed cross-track contracts |
+
+**Also worth ten minutes, not blocking:**
+
+- `anthropic>=0.86` is now in `requirements.txt` (lazily imported, so nothing
+  else breaks) — flagged per §4.
+- Sprint-0 S1, S2 and S5 are still open on Track A.
+
+**And one for product, not Prasad:** POA/09 §10.4 and POA/08 §10.3 are the same
+question. The fallback copy (4 languages) and the prompt guardrails are both
+**engineer-written placeholder text**. They are safe and claim-free, but nobody
+in marketing or a native speaker has seen them, and they should not face
+customers as-is.
+
 ## 6. Daily git workflow
 
 **Branches:** each person works on their own long-lived branch, never on `main`.

@@ -393,6 +393,17 @@ LOG = [
      "the M05 reservation confirm/rollback handshake to POA/18 §5 — it's cross-track and needs "
      "ten minutes with Prasad.",
      "30 new tests, 282 total green; POA/08 done", "local only"),
+
+    ("2026-09-02", "B1",
+     "Built the M13 service layer — the part POA/13 §9 wants early so M04/M05 have config. The "
+     "interesting decision was the rule DSL: §8 says ONE validator shared with M04, so rather than "
+     "write a second one I validated everything around it and left `conditions` behind a named "
+     "seam that reports it went unchecked. Also spent time on two properties a naive version gets "
+     "wrong — rollback creating a version instead of deleting one, and an audit that is actually "
+     "immutable rather than just append-only. Finally consolidated all five open questions for "
+     "Prasad into POA/18 §5b: they have been raised piecemeal across six modules without landing, "
+     "and they are answerable in one sitting.",
+     "38 new tests, 320 total green; POA/13 service layer done", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #
