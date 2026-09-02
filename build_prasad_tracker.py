@@ -180,7 +180,9 @@ TASKS = [
 
     ("A3", "Customer Journey & Behavioural Event Capture (SDK / contract)",
      "POA/01", "Track A", "Not started", "", "", "",
-     "Depends on the A4 contract, not the whole service."),
+     "NEXT — the last Track A module. Depends on the A4 contract (done), not the whole service. "
+     "Client-side/server SDK that emits generator.models.Event to A4's POST /v1/events; the wire "
+     "contract already exists, so this is the emit/batch/consent-gating layer."),
 
     ("A7", "Pending-Engagement Queue & Deferred Scheduler (Celery)",
      "POA/06", "Track A", "In progress", "2026-09-02", "",
@@ -200,10 +202,20 @@ TASKS = [
      "— 158 total green, ruff clean. Commit 10285b5 (PR #1)"),
 
     ("A8", "Human Handoff Manager",
-     "POA/07", "Track A", "Not started", "", "", "",
-     "NEXT. Depends on A5 (done). Keep handoff code THIN around RoutingRule .match/.route/.sla dicts "
-     "— B1 will likely tighten them into real models. Handoff event is a message contract, not a "
-     "call (§5). Routing defaults already in generator/fixtures.default_routing_rules()."),
+     "POA/07", "Track A", "In progress", "2026-09-02", "",
+     "Core done + tested, kept THIN around RoutingRule's bare match/route/sla dicts (so B1/M13 can "
+     "tighten them without reworking A8). services/event_pipeline/handoff/: HandoffRequest contract "
+     "(a message, §5), first-match routing over the M13 dicts + catch_all default (reuses "
+     "fixtures.default_routing_rules), context packaging (refs + human summary, no inlined PII — "
+     "M15 §4), QueueAdapter seam (default wraps SupportQueueMock, §10.1 open) with per-queue retry, "
+     "no-agent/after-hours -> fallback queue, and dead-letter so a handoff is NEVER dropped silently. "
+     "Lifecycle ledger (routed/fallback/dead_lettered -> accepted -> resolved) keyed by ticket_ref "
+     "for M14 handoff-rate + closed-loop attribution. Cross-track: HandoffRequest in "
+     "generator/models.py, reconcile with M12/B6. Deferred (POA/07 §11): concrete support-platform "
+     "adapter, M12->M04 intake wiring.",
+     "services/event_pipeline/handoff/{routing,packager,adapter,manager,ledger,tables,bootstrap}.py, "
+     "generator/models.py (contract), POA/07 §11; tests/test_handoff_manager.py (10) — 181 total "
+     "green, ruff clean. Commit d23cef6 (PR #1)"),
 
     # --- Process / cross-track --------------------------------------------- #
     ("P1", "Accept Track A + maintain POA/18 §7 status rows",
@@ -358,6 +370,19 @@ LOG = [
      "as-is and added rollback(reason) (POA/18 §5 item 2); models.py changes on both sides are "
      "additive, no renames. Updated the A7 scheduler doc (engine default is now a real lock).",
      "171 total green; contract aligned; ruff clean", "89ebcf9 (PR #1)"),
+
+    ("2026-09-02", "A8",
+     "Built the handoff manager — the escalation-to-human branch — on the engine Shagun's review had "
+     "just hardened. Deliberately thin: routing reads RoutingRule's bare dicts directly rather than "
+     "building types B1/M13 will replace, and context is packaged as refs + a summary, not inlined "
+     "PII (the agent tool fetches the transcript by conversation_id). The failure handling is the "
+     "substance — dispatch behind an adapter seam (the support platform is unknown, POA/07 §10.1), "
+     "retry per queue, no-agent/after-hours falls to the fallback queue, and if every queue is "
+     "exhausted the handoff is dead-lettered, never dropped silently (a lost escalation is a customer "
+     "left hanging). Lifecycle ledger tracks routed->accepted->resolved by ticket_ref for M14. "
+     "HandoffRequest is a message contract (§5). This completes A1-A8 — the whole Track A pipeline "
+     "except the A3 capture SDK.",
+     "10 new tests, 181 total green; ruff clean", "d23cef6 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #
