@@ -177,15 +177,27 @@ TASKS = [
      "Depends on the A4 contract, not the whole service."),
 
     ("A7", "Pending-Engagement Queue & Deferred Scheduler (Celery)",
-     "POA/06", "Track A", "Not started", "", "", "",
-     "NEXT. Depends on A2, A5 (both done). Consumes A5's DeferredSink items + runs the I/J "
-     "derivation scans A5 deferred (uses A2 read models: has_repeated_search, last_event_at). "
-     "make_celery() factory already stubbed in services/platform (celery added as a dep here)."),
+     "POA/06", "Track A", "In progress", "2026-09-02", "",
+     "Core done + tested. services/event_pipeline/pending/: pending_engagements queue where "
+     "PendingQueue.enqueue IS A5's DeferredSink (so A5's deferred matches flow straight in, no "
+     "duplication). eligible_at = created + wait_period, expires_at = created + expiry; every read "
+     "takes an explicit `now` so wait/eligibility/expiry are time-travel tested. expire_due sweeps "
+     "overdue pending -> expired (returns ids for Z2), never touching raised/raising; reconcile_stuck "
+     "releases crashed `raising` rows. Login re-eval (node S): on_login under a per-customer lock "
+     "fetches eligible entries, arbitrates them through A6 (multiple pending compete on PRECEDENCE, "
+     "§10.3), fires the winner via FireSink + marks raised; losers/cap-suppressed stay pending for a "
+     "later login. Concurrency test: 5 parallel logins raise at most once. Celery Beat wiring "
+     "(beat_schedule + register_pending_tasks) with no top-level celery import. e2e A5->A7->A6 "
+     "tested. Deferred (POA/06 §11): in-session merge at login, SKIP-LOCKED claim, Beat integration run.",
+     "services/event_pipeline/pending/{tables,queue,scheduler,tasks,bootstrap}.py, "
+     "services/requirements.txt + pyproject (celery), POA/06 §11; tests/test_pending_queue.py (12) "
+     "— 158 total green, ruff clean. Commit 10285b5 (PR #1)"),
 
     ("A8", "Human Handoff Manager",
      "POA/07", "Track A", "Not started", "", "", "",
-     "Depends on A5. Keep handoff code THIN around RoutingRule .match/.route/.sla dicts — B1 will "
-     "likely tighten them into real models. Handoff event is a message contract, not a call (§5)."),
+     "NEXT. Depends on A5 (done). Keep handoff code THIN around RoutingRule .match/.route/.sla dicts "
+     "— B1 will likely tighten them into real models. Handoff event is a message contract, not a "
+     "call (§5). Routing defaults already in generator/fixtures.default_routing_rules()."),
 
     # --- Process / cross-track --------------------------------------------- #
     ("P1", "Accept Track A + maintain POA/18 §7 status rows",
@@ -315,6 +327,18 @@ LOG = [
      "store->relay->parse->evaluate->fire without needing Redis. Scoped POA/04 §11 honestly: the "
      "I/J derivation workers wait on A7, and the handoff branch on M07/§10.3.",
      "12 new tests, 146 total green; ruff clean", "2b46310 (PR #1)"),
+
+    ("2026-09-02", "A7",
+     "Built the deferred branch — the pending queue + login re-evaluation. The clean win was making "
+     "PendingQueue implement A5's DeferredSink, so A5's deferred matches flow straight in with no "
+     "new contract, and on_login just re-arbitrates them through the SAME A6 engine — so precedence "
+     "and cap behave identically whether a signal fires in-session or after a login. Kept it "
+     "testable without a clock or a broker: every read takes an explicit `now` (so expiry/eligibility "
+     "are time-travelled) and the Celery tasks are thin wrappers over pure methods with no top-level "
+     "celery import. Wrote the two invariants the POA cares about — raised-at-most-once under "
+     "concurrent logins, and expiry never touching a raised row. Answered §10.3 (pending entries "
+     "compete on precedence, not FIFO).",
+     "12 new tests, 158 total green; ruff clean", "10285b5 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #
