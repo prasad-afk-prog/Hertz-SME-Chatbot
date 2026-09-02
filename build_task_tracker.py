@@ -265,9 +265,31 @@ TASKS = [
      "252 total green. Local only, not pushed."),
 
     ("B6", "Customer Response & Multi-turn Conversation Manager",
-     "POA/12", "Track B", "Not started", "", "", "",
-     "Consumes the S3 trees. Must honour delivered_excludes vs superseded_tokens as two "
-     "different rules."),
+     "POA/12", "Track B", "DONE (5.5/7)", "2026-09-02", "2026-09-02",
+     "The AE-AK loop: response detection, multi-turn with retained context, resolution/stuck "
+     "detection, deep link, attribution, handoff raising, terminal logging. Tasks 5 and 6 are "
+     "partial for reasons outside my control — AJ has no real booking-signal producer (M01/A3 "
+     "does not exist) and the handoff contract needs agreeing with Prasad. "
+     "FINDING WORTH THE MOST: reference.terminal_state has THREE outcomes (no_engagement / "
+     "converted / handed_off) but the flow has FOUR — a customer the bot helped, shown a deep "
+     "link, who has not yet booked is none of them. Calling terminal_state(True, True) at "
+     "resolution returns `converted` and COUNTS A BOOKING THAT NEVER HAPPENED, inflating the exact "
+     "conversion metric M14 reports and this feature is judged on. A test caught it. M12 leaves "
+     "terminal as None between AI and AJ and surfaces the gap rather than forking the spec — "
+     "POA/18 §5b item 7. Other decisions: max-turns ESCALATES rather than closing (a customer "
+     "dropped mid-conversation is worse than one handed to a person); the handoff routes through "
+     "M04 not straight to M07, because M04 is the single place that decides what happens to a "
+     "signal; the event carries no queue/agent/skill — raised, never handled inline — but does "
+     "carry the whole transcript, since a handoff that makes the customer repeat themselves is the "
+     "failure this feature exists to prevent; `resolved` has to be earned (default unresolved, "
+     "only explicit confirmation reaches it) because erring toward a person costs an agent's time "
+     "while erring the other way strands someone; complaints and billing disputes are never "
+     "bot-resolvable whatever the customer says, which is what the S3 CV-12/CV-13 trees pinned; "
+     "and a booking BEFORE the conversation is never attributed, with the window boundary "
+     "inclusive and asserted at both edges.",
+     "services/conversation/response/{service,resolution,handoff}.py, "
+     "tests/test_response_manager.py (31 tests) — 437 total green. "
+     "Added POA/18 §5b items 6 and 7. Local only, not pushed."),
 
     ("B7", "Audit, Reporting & Analytics",
      "POA/14", "Track B", "Not started", "", "", "", ""),
@@ -423,6 +445,16 @@ LOG = [
      "Prasad into POA/18 §5b: they have been raised piecemeal across six modules without landing, "
      "and they are answerable in one sitting.",
      "38 new tests, 320 total green; POA/13 service layer done", "local only"),
+
+    ("2026-09-02", "B6",
+     "Built M12, closing the post-delivery loop. The most valuable thing to come out of it was "
+     "not code: a test caught that reference.terminal_state cannot express this flow — it has "
+     "three outcomes where the diagram has four, and using it at the resolution point would have "
+     "counted bookings that never happened, quietly inflating the conversion metric. Left it as "
+     "None and surfaced the gap rather than forking the shared spec. Also merged Prasad's branch "
+     "earlier today (393 green), then found and fixed three real defects in his engagement path "
+     "— including a cap race that let 4 reservations through a cap of 1 under concurrency.",
+     "31 new tests, 437 total green; POA/12 at 5.5/7", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #

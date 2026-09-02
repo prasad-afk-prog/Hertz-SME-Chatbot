@@ -24,10 +24,23 @@ from services.common.resilience import Clock
 
 
 class ConversationStatus(str, Enum):
+    """The M08 -> M12 lifecycle (POA/12 §3.1).
+
+    M08 writes `open` (delivered, awaiting the customer) or `failed`. Everything
+    after that is M12's: it moves `open` through the response loop to one of the
+    three terminal states. Additive only — `open` and `failed` keep the meanings
+    M08 and its tests already rely on.
+    """
     open = "open"                  # delivered, awaiting the customer (-> M12)
     delivered_no_reply = "delivered_no_reply"
     failed = "failed"              # nothing reached the customer
     closed = "closed"
+    # ---- M12 (POA/12 §3.1) ------------------------------------------- #
+    active = "active"              # customer replied; multi-turn loop running
+    deep_link = "deep_link"        # AI — resolved, deep link surfaced
+    converted = "converted"        # AJ — booking attributed to the intervention
+    no_engagement = "no_engagement"  # AF — no reply inside the window
+    handed_off = "handed_off"      # AK — handoff event raised
 
 
 class TurnRole(str, Enum):

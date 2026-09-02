@@ -174,6 +174,8 @@ they are answerable in one sitting, and scattered mentions have not worked.*
 | 3 | **Config hot-reload consumer contract** (§5 item 6). M13 publishes `(entity, entity_id, version, enabled)`. Do M04/M05/M06/M07 want that, or a payload? | M13 task 4 | Config/runtime drift — POA/13 §8's second risk |
 | 4 | **Who owns the rule DSL validator?** `TriggerMatch.conditions` is untyped `list[dict]`. POA/13 §8 says *one* validator shared with M04. M13 ships a named seam and validates nothing inside it. | M13 tasks 2 & 7 | Two validators that disagree — the exact divergence §8 warns about |
 | 5 | **M04 and M07 message contracts** — even draft shapes would do. | All of POA/12 | Two more guessed cross-track contracts |
+| 6 | **Handoff event shape** (added 2026-09-02). M12 proposes `HandoffEvent` — conversation_id, customer_id, trigger_id, reason, locale, full transcript, thread_id — raised to a `HandoffSink`, deliberately mirroring your `FireSink`. §3.3 routes it **through M04**, not straight to M07, and your `triggers/evaluator.py` already documents that receiving seam. | POA/12 task 6; POA/14's handoff logging | A handoff that loses the transcript, so the customer repeats themselves to an agent |
+| 7 | **`reference.terminal_state` has three outcomes; the flow has four** (added 2026-09-02). A customer the bot helped, shown a deep link, who has not yet booked, is none of `no_engagement` / `converted` / `handed_off`. Calling `terminal_state(True, True)` there returns `converted` and counts a booking that never happened. M12 leaves it `None` rather than forking the spec. Needs a fourth member, or a decision that this is M14's problem. | Conversion accuracy in M14 | The conversion metric silently over-reports |
 
 **Also worth ten minutes, not blocking:**
 

@@ -1,7 +1,70 @@
 # POA — Customer Response & Multi-turn Conversation Manager
 
-**Module ID:** M12 | **Flow stage:** 4 | **Flow nodes:** AE–AK | **Status:** Draft
+**Module ID:** M12 | **Flow stage:** 4 | **Flow nodes:** AE–AK
+**Status:** **Implementation landed 2026-09-02** (Shagun, Track B) — see §11
 **Depends on:** M08 (state), M11 (I/O), M04/M07 (handoff), M09/M10 (turns) | **Feeds:** M14, M07
+
+---
+
+## 11. Implementation status (2026-09-02)
+
+Code: `services/conversation/response/` — `service.py`, `resolution.py`, `handoff.py`.
+Tests: `tests/test_response_manager.py` (31 tests; 437 in the suite, all green).
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Conversation state machine + persistence | ✅ extends M08's `ConversationStatus`, additively |
+| 2 | No-response timeout (AF) + engagement logging | ✅ injected clock; Celery drives it in prod (A7/M15) |
+| 3 | Multi-turn loop (M09→M10→M11) + max-turns guardrail | ✅ reuses all three, no second orchestration |
+| 4 | Resolution / stuck detector (AH) | ✅ conservative by construction |
+| 5 | Deep link back (AI) + booking attribution (AJ) | ◐ logic done; **no real producer for the booking signal** — see below |
+| 6 | Handoff-event raiser (AK) → M04/M07 | ◐ **contract proposed, unagreed** — POA/18 §5b item 6 |
+| 7 | Terminal-outcome logging → M14 | ✅ `ConversationOutcome` per conversation |
+
+### FINDING — `reference.terminal_state` cannot express this flow
+
+`TerminalState` has three members — `no_engagement`, `converted`, `handed_off` — but §3.1's diagram
+has **four** outcomes. A customer the bot helped, who was shown a deep link and has not (yet)
+booked, is none of the three.
+
+Calling `terminal_state(responded=True, resolves=True)` at the resolution point returns
+`converted`, which **counts a booking that never happened** — inflating the exact conversion metric
+M14 reports and this feature is judged on. A test caught it.
+
+M12 therefore leaves `ConversationOutcome.terminal` as `None` between AI and AJ, and only sets
+`converted` once a real booking is attributed. **The gap is surfaced rather than forked**: the
+shared spec in `generator/reference.py` is the right place to fix it, once its owner decides what
+the fourth outcome is called (`resolved_not_booked`?). Until then M12 does not lie about it.
+
+### Decisions worth carrying forward
+
+- **Hitting max-turns raises a handoff; it never silently closes.** §3.1 asks for escalation on
+  repeated failure, and a customer dropped mid-conversation is worse than one handed to a person.
+- **The handoff routes through M04, not straight to M07** (§3.3). M04 is the single place that
+  decides what happens to a signal; bypassing it would put a second routing brain in the system.
+  Prasad's `triggers/evaluator.py` already documents the receiving seam.
+- **A handoff is raised, never handled inline** (§2). The event carries no queue, agent or skill —
+  M12 states what happened and hands over the whole transcript. A handoff that makes the customer
+  repeat themselves is the failure this feature exists to prevent.
+- **`resolved` has to be earned.** The detector defaults to `unresolved`; only explicit customer
+  confirmation reaches `resolved`. Erring toward a person costs an agent's time; erring the other
+  way strands someone who still needs help.
+- **Complaints and billing disputes are never bot-resolvable**, whatever the customer says. The S3
+  trees (CV-12, CV-13) pinned that expectation; here it becomes behaviour.
+- **An unverifiable claim escalates** rather than being papered over — if we could not state a fact
+  safely, we do not pretend we helped.
+- **A booking before the conversation is never attributed**, and the window boundary is inclusive
+  and asserted at both edges. Attribution errors flow straight into the conversion metric.
+
+**Open questions — current state:**
+
+- **§10.x / task 5:** AJ's booking-completion signal comes from the M01/M02 stream. A2 is merged so
+  events can be consumed, but **M01 (A3) does not exist**, so nothing produces a real
+  booking-completion signal yet. `BookingSignal` is the shape M12 expects; the attribution logic is
+  tested, the end-to-end path is not.
+- **Task 6:** the `HandoffEvent` shape is a **proposal**. It deliberately mirrors Prasad's
+  `FireSink` (Pydantic message + Protocol + in-memory impl) so wiring it is recognisable. Needs
+  agreeing — POA/18 §5b item 6.
 
 ---
 
