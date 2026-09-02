@@ -92,3 +92,36 @@ Phase 3, after M12 raises handoff events. ~2–3 weeks (plus platform-integratio
 1. Which support/agent platform is the target (Zendesk / Salesforce / in-house)?
 2. What agent-queue routing dimensions exist today (skills, teams, languages)?
 3. After-hours policy: callback, fallback queue, or templated "we'll get back to you"?
+
+## 11. Build notes / deviations (A8 — 2026-09-02)
+
+Delivered in `services/event_pipeline/handoff/`, on the A1 template.
+
+- **Contract** (`generator/models.py`): `HandoffRequest` (a message, not a call —
+  POA/18 §5) + `HandoffReason`. Context is carried as **refs + a summary, not
+  inlined PII** (M15 §4); the agent tool fetches the full transcript/profile by
+  `conversation_id`. Cross-track — raised by Track B's M12; reconcile field names
+  with B6 when it lands.
+- **Routing** (`routing.py`) — reads `RoutingRule`'s bare `match`/`route`/`sla`
+  **dicts directly** (kept thin per POA/18 §8 A8 caveat, so B1/M13 can tighten
+  them without reworking A8). Ordered, first match wins; `catch_all` (match={})
+  is the default. Uses the existing `generator/fixtures.default_routing_rules()`.
+- **Context packaging** (`packager.py`) — structured payload + human-readable
+  summary the agent sees immediately.
+- **Dispatch** (`manager.py`) — behind a `QueueAdapter` protocol (§10.1 open;
+  default wraps `SupportQueueMock`). Retry per queue; **no agent / after-hours →
+  fallback queue**; every queue exhausted → **dead-letter, never a silent drop**
+  (POA/07 §8). Each handoff recorded to the ledger.
+- **Lifecycle** (`ledger.py`) — `handoffs` table tracks status
+  (routed/fallback/dead_lettered → accepted → resolved) keyed by `ticket_ref`
+  for M14 handoff-rate + closed-loop attribution. `update_status` returns whether
+  a row moved (unknown ref surfaced, not silent). Portable (Postgres/SQLite).
+
+**Deferred:** the concrete support-platform adapter (§10.1), sharing the routing
+DSL with M04/M05 (kept a simpler dict-match here since RoutingRule is dict-typed),
+and the M12→M04→A8 intake wiring (M12 is Track B; A8 is invoked with a
+HandoffRequest — the consumer is a thin follow-up).
+
+**Acceptance (§6):** routed to the correct queue per rules with full context ✓,
+every handoff logged+audited ✓, no-agent/after-hours follows fallback and never
+drops (dead-letter) ✓, rules changeable via M13 config ✓.
