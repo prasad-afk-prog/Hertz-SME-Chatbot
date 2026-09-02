@@ -138,7 +138,10 @@ TASKS = [
      "(library called by A5).",
      "services/event_pipeline/frequency/{tables,ledger,engine,precedence,lock,bootstrap}.py, "
      "generator/models.py (contract), POA/05 §11; tests/test_frequency_precedence.py (11) — 134 "
-     "total green, ruff clean. Commit 7a5a0f8 (PR #1)"),
+     "total green, ruff clean. Commit 7a5a0f8 (PR #1). HARDENED via Shagun's review (89ebcf9): "
+     "reserve() defaults to PerCustomerLock (cap was NOT concurrency-safe under NullLock — 4 fired "
+     "at cap 1); confirm/rollback guarded (only_from='reserved') so a late confirm can't re-burn a "
+     "rolled-back slot; rollback(reason) preserves M08's cause for M14 (POA/18 §5 item 2)."),
 
     ("A4", "Event Ingestion API (FastAPI)",
      "POA/02", "Track A", "In progress", "2026-09-01", "",
@@ -154,7 +157,10 @@ TASKS = [
      "Deferred (POA/02 §11): real auth mechanism, distributed rate limiter, load verification.",
      "services/event_pipeline/ingestion/{router,service,auth,ratelimit,schemas}.py, main.py, "
      "services/platform/config.py, pyproject (ruff), POA/02 §11; tests/test_ingestion_api.py (11, "
-     "incl. e2e API->store->relay->stream) — 123 total green, ruff clean. Commit ee06657 (PR #1)"),
+     "incl. e2e API->store->relay->stream) — 123 total green, ruff clean. Commit ee06657 (PR #1). "
+     "HARDENED via Shagun's review (89ebcf9): AllowAllAuthenticator now warns on construction AND "
+     "per request (it claimed to log but didn't — spoofed-event risk, POA/02 §3.3); in-memory rate "
+     "limiter evicts stale windows (was an unbounded leak on the live path)."),
 
     ("A5", "Trigger Evaluation Engine",
      "POA/04", "Track A", "In progress", "2026-09-01", "",
@@ -339,6 +345,19 @@ LOG = [
      "concurrent logins, and expiry never touching a raised row. Answered §10.3 (pending entries "
      "compete on precedence, not FIFO).",
      "12 new tests, 158 total green; ruff clean", "10285b5 (PR #1)"),
+
+    ("2026-09-02", "review",
+     "Shagun pushed Track B (feat/track-b-conversation-services) and had merged my A1-A5 into it, "
+     "then flagged FOUR defects in my A4/A5/A6 per POA/18 §2: (1) reserve() defaulted to NullLock so "
+     "the cap was NOT concurrency-safe (measured 4 fires at cap 1); (2) the reservation state machine "
+     "was an unguarded UPDATE, so a late/duplicated confirm after a rollback silently re-burned a "
+     "slot the customer never got; (3) AllowAll auth claimed to log but didn't; (4) the rate limiter "
+     "never evicted. Cherry-picked Shagun's fix (89ebcf9) rather than reimplementing — credit stays "
+     "with the finder, and it brings 13 regression tests that each fail against the pre-fix code. "
+     "Confirmed the shared contract is aligned: Shagun adopted my EngagementDecision/FireMessage "
+     "as-is and added rollback(reason) (POA/18 §5 item 2); models.py changes on both sides are "
+     "additive, no renames. Updated the A7 scheduler doc (engine default is now a real lock).",
+     "171 total green; contract aligned; ruff clean", "89ebcf9 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #

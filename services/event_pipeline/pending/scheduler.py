@@ -6,8 +6,10 @@ fire the winner via the FireSink, mark it `raised`, and leave the losers pending
 for a later login. The whole hook runs under a per-customer lock so concurrent
 logins never double-raise the same entry (POA/06 §6).
 
-The A6 engine passed here should use its default NullLock (this scheduler already
-serialises per customer) to avoid a nested same-lock deadlock.
+A6's reserve() also takes a per-customer lock by default (its own instance,
+distinct from this scheduler's), so nesting the two is safe — different lock
+objects, no shared-lock deadlock. This scheduler's lock serialises the whole
+claim -> arbitrate -> raise sequence.
 """
 from __future__ import annotations
 
