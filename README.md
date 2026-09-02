@@ -23,7 +23,7 @@ drives the correct outcomes **before the real M02–M14 services exist**.
 
 ```bash
 pip install -r requirements-dev.txt          # generator + services + test deps
-python -m pytest                              # 437 tests, all green
+python -m pytest                              # 472 tests, all green
 python -m generator build --seed 42 --tier golden --out test_data
 python -m generator build --seed 42 --tier volume --customers 1000 --out test_data
 ```
@@ -67,6 +67,7 @@ services/         the real services
   conversation/orchestrator/         M08 - context, personalisation, prompts, state, pipeline
   admin/config/                      M13 - versioned config, audit, validation, hot-reload
   conversation/response/             M12 - response loop, resolution, handoff, attribution
+  analytics/                         M14 - outcome events, metrics, drill-down, audit views
 tests/            pytest suite (contracts, world, patterns, golden, verification,
                   invariants, business, conversation intents, PII, repository,
                   fees/disputes, taxonomy/stations, load config, platform skeleton,
@@ -119,6 +120,7 @@ the mock returns the world's true £52.21, and the verifier must correct/strip i
 | `test_golden_scenarios.py` | every branch (W/AA/O/AE/AH) drives its pinned expected outcome |
 | `test_invariants.py` | frequency cap never exceeded over volume; **no unverified claim ever delivered** |
 | `test_business_entities.py` | v0.2 companies/plans/invoices/catalogues are schema-valid & referentially consistent; booking lifecycle exercised; totals derived not flat |
+| `test_analytics_service.py` | **M14 service**: every aggregate reconciles with a recount from raw events (asserted as a property, not a spot-check); a zero denominator is `None` not `0.0`; conversion is over *fired* not *delivered*; resolved-but-unbooked is a **pending** bucket and the split always adds up; the funnel never widens; no analytics field is PII-marked and no S4 fixture value reaches an export |
 | `test_response_manager.py` | **M12 service**: no-response window on an injected clock; multi-turn with retained context; max-turns **escalates rather than closing**; complaints/disputes never bot-resolved; handoff carries the full transcript and no routing; attribution boundary tested at both edges and a pre-conversation booking never attributed |
 | `test_admin_config_service.py` | **M13 service**: create/tune/disable a trigger; every change audited with actor + before/after and the audit is immutable by test; invalid configs rejected with field-level errors (duplicate precedence, unknown template ref, incoherent deferred settings); rollback creates a version rather than deleting one; publishes a version stamp, not a payload |
 | `test_orchestrator_service.py` | **M08 service**: fire -> delivered end to end; personalisation changes language and tone; **the context allow-list is disjoint from every PII-marked field** and no S4 fixture value reaches a prompt; injected customer text stays inside the fence and an injected fake price is still killed by M10; all five failure points still reach the customer safely; delivery failure rolls the reservation back |

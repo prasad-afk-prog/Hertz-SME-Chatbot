@@ -292,7 +292,28 @@ TASKS = [
      "Added POA/18 §5b items 6 and 7. Local only, not pushed."),
 
     ("B7", "Audit, Reporting & Analytics",
-     "POA/14", "Track B", "Not started", "", "", "", ""),
+     "POA/14", "Track B", "DONE (6/7)", "2026-09-02", "2026-09-02",
+     "Outcome-event contracts, immutable store, metric rollups, attribution join, query layer, "
+     "CSV export and read-only views over M13's config audit. Task 6 (dashboard) deferred — "
+     "frontend stack, §10.3 unanswered. Adapters mean NOTHING UPSTREAM HAD TO CHANGE to support "
+     "reporting. THE THING THAT MATTERS MOST: every rate names its denominator, because that is "
+     "where a reporting module gets silently wrong and the four in §3.2 do not share one — "
+     "conversion is over FIRED not delivered, because an engagement approved and then undelivered "
+     "is a conversion we LOST and moving it into the denominator would flatter the number. A zero "
+     "denominator returns None, never 0.0: '0% conversion' and 'no data' are different facts and "
+     "a dashboard that renders them identically lies to whoever decides from it. Aggregates are "
+     "RECOMPUTED from raw events on every call, never incremented — a cached counter that drifts "
+     "from its source is the classic reporting bug and it drifts silently; §6's reconciliation is "
+     "asserted as a property over every event kind rather than a spot-check. M12's terminal=None "
+     "finding flows through as a real PENDING bucket, with converted+pending+not_converted == "
+     "conversations asserted and pending clamped at zero (a conversion can land in a later window "
+     "than its resolution). The funnel is asserted never to widen. PII: aggregates and exports are "
+     "PII-free BY CONSTRUCTION (no OutcomeEvent field is PII-marked, and no S4 fixture value "
+     "reaches a CSV) — but drill-down into conversations reaches customer text and needs M15 "
+     "access control, which does not exist; that boundary is stated rather than glossed.",
+     "services/analytics/{events,metrics,service}.py, tests/test_analytics_service.py "
+     "(35 tests) — 472 total green. Added POA/18 §5b item 8 (nobody emits Z1/Z2 to M14). "
+     "Local only, not pushed."),
 
     # --- Process ------------------------------------------------------------ #
     ("P1", "Two-person work split + daily git workflow (POA/18)",
@@ -455,6 +476,17 @@ LOG = [
      "earlier today (393 green), then found and fixed three real defects in his engagement path "
      "— including a cap race that let 4 reservations through a cap of 1 under concurrency.",
      "31 new tests, 437 total green; POA/12 at 5.5/7", "local only"),
+
+    ("2026-09-02", "B7",
+     "Built M14, the last module with real scope. Spent most of the thinking on denominators "
+     "rather than code: conversion over fired vs delivered changes the headline number, and a "
+     "zero denominator rendering as 0% instead of no-data is the kind of bug that survives to a "
+     "board slide. Made aggregates recount from raw on every call so §6's reconciliation is true "
+     "by construction rather than by discipline. M12's terminal=None finding paid off here — it "
+     "became a visible pending bucket instead of quietly under-reporting conversion. Reused the "
+     "S4 PII trick a third time, and scoped it honestly: aggregates are safe, drill-down is not, "
+     "and that needs M15.",
+     "35 new tests, 472 total green; POA/14 at 6/7", "local only"),
 ]
 
 # --------------------------------------------------------------------------- #
