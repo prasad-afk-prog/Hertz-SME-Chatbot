@@ -9,9 +9,9 @@ prometheus-client>=0.20
 sqlalchemy>=2.0
 psycopg[binary]>=3.1     # prod Postgres driver (the test suite uses bundled SQLite)
 redis>=5.0               # Redis Streams / A5 frequency counters
+celery>=5.3              # A7 Pending Queue & Deferred Scheduler (Beat)
 
 # Roadmap — added by later Track A modules as they need them:
-# celery>=5.3            # A7 Pending Queue / Scheduler
 # opentelemetry-sdk>=1.25
 # opentelemetry-exporter-otlp>=1.25
 # opentelemetry-instrumentation-fastapi>=0.46b0   # enables the tracing baseline

@@ -512,6 +512,34 @@ class FireMessage(BaseModel):
     occurred_at: datetime
 
 
+# ---- handoff (M12 -> M04 -> A8/M07) — POA/07, POA/18 §5 ------------------- #
+# NOTE (cross-track): raised by Track B's M12; reconcile field names with that
+# when B6 lands. Kept thin so RoutingRule's bare match/route/sla dicts (M13) can
+# be tightened by B1 without reworking A8.
+class HandoffReason(str, Enum):
+    cannot_resolve = "cannot_resolve"            # the bot could not help
+    customer_requested = "customer_requested"
+    verification_failed = "verification_failed"  # M10 could not verify a claim
+    complaint = "complaint"
+    error = "error"
+
+
+class HandoffRequest(BaseModel):
+    """Escalate a conversation to a human (a message, not a call — POA/18 §5).
+    Context is carried as refs/summary, not inlined PII (M15 §4)."""
+    model_config = ConfigDict(extra="forbid")
+    conversation_id: str
+    customer_id: str
+    reason: HandoffReason
+    language: str = "en"
+    customer_type: str | None = None             # individual|SME|corporate (dict-matched, thin)
+    priority: str | None = None                  # hint; a routing rule may override
+    event_id: str | None = None
+    booking_reference: str | None = None
+    transcript_summary: str | None = None        # short human summary from M08/M12
+    unresolved_claim: str | None = None          # e.g. a claim M10 could not verify
+
+
 # --------------------------------------------------------------------------- #
 # LLM fixtures & claims (M09 <-> M10)
 # --------------------------------------------------------------------------- #

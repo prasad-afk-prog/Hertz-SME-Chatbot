@@ -138,7 +138,10 @@ TASKS = [
      "(library called by A5).",
      "services/event_pipeline/frequency/{tables,ledger,engine,precedence,lock,bootstrap}.py, "
      "generator/models.py (contract), POA/05 §11; tests/test_frequency_precedence.py (11) — 134 "
-     "total green, ruff clean. Commit 7a5a0f8 (PR #1)"),
+     "total green, ruff clean. Commit 7a5a0f8 (PR #1). HARDENED via Shagun's review (89ebcf9): "
+     "reserve() defaults to PerCustomerLock (cap was NOT concurrency-safe under NullLock — 4 fired "
+     "at cap 1); confirm/rollback guarded (only_from='reserved') so a late confirm can't re-burn a "
+     "rolled-back slot; rollback(reason) preserves M08's cause for M14 (POA/18 §5 item 2)."),
 
     ("A4", "Event Ingestion API (FastAPI)",
      "POA/02", "Track A", "In progress", "2026-09-01", "",
@@ -154,7 +157,10 @@ TASKS = [
      "Deferred (POA/02 §11): real auth mechanism, distributed rate limiter, load verification.",
      "services/event_pipeline/ingestion/{router,service,auth,ratelimit,schemas}.py, main.py, "
      "services/platform/config.py, pyproject (ruff), POA/02 §11; tests/test_ingestion_api.py (11, "
-     "incl. e2e API->store->relay->stream) — 123 total green, ruff clean. Commit ee06657 (PR #1)"),
+     "incl. e2e API->store->relay->stream) — 123 total green, ruff clean. Commit ee06657 (PR #1). "
+     "HARDENED via Shagun's review (89ebcf9): AllowAllAuthenticator now warns on construction AND "
+     "per request (it claimed to log but didn't — spoofed-event risk, POA/02 §3.3); in-memory rate "
+     "limiter evicts stale windows (was an unbounded leak on the live path)."),
 
     ("A5", "Trigger Evaluation Engine",
      "POA/04", "Track A", "In progress", "2026-09-01", "",
@@ -173,19 +179,53 @@ TASKS = [
      "clean. Commit 2b46310 (PR #1)"),
 
     ("A3", "Customer Journey & Behavioural Event Capture (SDK / contract)",
-     "POA/01", "Track A", "Not started", "", "", "",
-     "Depends on the A4 contract, not the whole service."),
+     "POA/01", "Track A", "In progress", "2026-09-02", "",
+     "Core done + tested — COMPLETES TRACK A. A Python reference/server-side capture SDK in "
+     "services/event_pipeline/capture/ (the prod client is JS on the portal; §4.1 placement is open, "
+     "so both sit behind the shared Event contract). CaptureClient builds schema-valid "
+     "generator.models.Event for the 8 signals (detectors stamp the right payload — abandon carries "
+     "the step, error the code), correlates a session (stable session_id, start_session on login), "
+     "gates on analytics consent (off -> dropped, nothing emitted), buffers to a capped queue, and "
+     "flushes batches to A4's /v1/events:batch over stdlib urllib. A failed flush KEEPS the batch and "
+     "retries -> no loss under a transient outage. event_id is client-generated for idempotency; an "
+     "SDK->A4 contract test proves valid events are accepted+stored and a lost-ack retry is deduped "
+     "by A4. No models.py change (reuses Event). Deferred (POA/01 §12): the client-side JS SDK + "
+     "browser detectors, sendBeacon flush, IndexedDB buffering — portal-team work behind the contract.",
+     "services/event_pipeline/capture/{client,buffer,transport,session}.py, POA/01 §12; "
+     "tests/test_capture_sdk.py (9) — 190 total green, ruff clean. Commit b7a9320 (PR #1)"),
 
     ("A7", "Pending-Engagement Queue & Deferred Scheduler (Celery)",
-     "POA/06", "Track A", "Not started", "", "", "",
-     "NEXT. Depends on A2, A5 (both done). Consumes A5's DeferredSink items + runs the I/J "
-     "derivation scans A5 deferred (uses A2 read models: has_repeated_search, last_event_at). "
-     "make_celery() factory already stubbed in services/platform (celery added as a dep here)."),
+     "POA/06", "Track A", "In progress", "2026-09-02", "",
+     "Core done + tested. services/event_pipeline/pending/: pending_engagements queue where "
+     "PendingQueue.enqueue IS A5's DeferredSink (so A5's deferred matches flow straight in, no "
+     "duplication). eligible_at = created + wait_period, expires_at = created + expiry; every read "
+     "takes an explicit `now` so wait/eligibility/expiry are time-travel tested. expire_due sweeps "
+     "overdue pending -> expired (returns ids for Z2), never touching raised/raising; reconcile_stuck "
+     "releases crashed `raising` rows. Login re-eval (node S): on_login under a per-customer lock "
+     "fetches eligible entries, arbitrates them through A6 (multiple pending compete on PRECEDENCE, "
+     "§10.3), fires the winner via FireSink + marks raised; losers/cap-suppressed stay pending for a "
+     "later login. Concurrency test: 5 parallel logins raise at most once. Celery Beat wiring "
+     "(beat_schedule + register_pending_tasks) with no top-level celery import. e2e A5->A7->A6 "
+     "tested. Deferred (POA/06 §11): in-session merge at login, SKIP-LOCKED claim, Beat integration run.",
+     "services/event_pipeline/pending/{tables,queue,scheduler,tasks,bootstrap}.py, "
+     "services/requirements.txt + pyproject (celery), POA/06 §11; tests/test_pending_queue.py (12) "
+     "— 158 total green, ruff clean. Commit 10285b5 (PR #1)"),
 
     ("A8", "Human Handoff Manager",
-     "POA/07", "Track A", "Not started", "", "", "",
-     "Depends on A5. Keep handoff code THIN around RoutingRule .match/.route/.sla dicts — B1 will "
-     "likely tighten them into real models. Handoff event is a message contract, not a call (§5)."),
+     "POA/07", "Track A", "In progress", "2026-09-02", "",
+     "Core done + tested, kept THIN around RoutingRule's bare match/route/sla dicts (so B1/M13 can "
+     "tighten them without reworking A8). services/event_pipeline/handoff/: HandoffRequest contract "
+     "(a message, §5), first-match routing over the M13 dicts + catch_all default (reuses "
+     "fixtures.default_routing_rules), context packaging (refs + human summary, no inlined PII — "
+     "M15 §4), QueueAdapter seam (default wraps SupportQueueMock, §10.1 open) with per-queue retry, "
+     "no-agent/after-hours -> fallback queue, and dead-letter so a handoff is NEVER dropped silently. "
+     "Lifecycle ledger (routed/fallback/dead_lettered -> accepted -> resolved) keyed by ticket_ref "
+     "for M14 handoff-rate + closed-loop attribution. Cross-track: HandoffRequest in "
+     "generator/models.py, reconcile with M12/B6. Deferred (POA/07 §11): concrete support-platform "
+     "adapter, M12->M04 intake wiring.",
+     "services/event_pipeline/handoff/{routing,packager,adapter,manager,ledger,tables,bootstrap}.py, "
+     "generator/models.py (contract), POA/07 §11; tests/test_handoff_manager.py (10) — 181 total "
+     "green, ruff clean. Commit d23cef6 (PR #1)"),
 
     # --- Process / cross-track --------------------------------------------- #
     ("P1", "Accept Track A + maintain POA/18 §7 status rows",
@@ -315,6 +355,56 @@ LOG = [
      "store->relay->parse->evaluate->fire without needing Redis. Scoped POA/04 §11 honestly: the "
      "I/J derivation workers wait on A7, and the handoff branch on M07/§10.3.",
      "12 new tests, 146 total green; ruff clean", "2b46310 (PR #1)"),
+
+    ("2026-09-02", "A7",
+     "Built the deferred branch — the pending queue + login re-evaluation. The clean win was making "
+     "PendingQueue implement A5's DeferredSink, so A5's deferred matches flow straight in with no "
+     "new contract, and on_login just re-arbitrates them through the SAME A6 engine — so precedence "
+     "and cap behave identically whether a signal fires in-session or after a login. Kept it "
+     "testable without a clock or a broker: every read takes an explicit `now` (so expiry/eligibility "
+     "are time-travelled) and the Celery tasks are thin wrappers over pure methods with no top-level "
+     "celery import. Wrote the two invariants the POA cares about — raised-at-most-once under "
+     "concurrent logins, and expiry never touching a raised row. Answered §10.3 (pending entries "
+     "compete on precedence, not FIFO).",
+     "12 new tests, 158 total green; ruff clean", "10285b5 (PR #1)"),
+
+    ("2026-09-02", "review",
+     "Shagun pushed Track B (feat/track-b-conversation-services) and had merged my A1-A5 into it, "
+     "then flagged FOUR defects in my A4/A5/A6 per POA/18 §2: (1) reserve() defaulted to NullLock so "
+     "the cap was NOT concurrency-safe (measured 4 fires at cap 1); (2) the reservation state machine "
+     "was an unguarded UPDATE, so a late/duplicated confirm after a rollback silently re-burned a "
+     "slot the customer never got; (3) AllowAll auth claimed to log but didn't; (4) the rate limiter "
+     "never evicted. Cherry-picked Shagun's fix (89ebcf9) rather than reimplementing — credit stays "
+     "with the finder, and it brings 13 regression tests that each fail against the pre-fix code. "
+     "Confirmed the shared contract is aligned: Shagun adopted my EngagementDecision/FireMessage "
+     "as-is and added rollback(reason) (POA/18 §5 item 2); models.py changes on both sides are "
+     "additive, no renames. Updated the A7 scheduler doc (engine default is now a real lock).",
+     "171 total green; contract aligned; ruff clean", "89ebcf9 (PR #1)"),
+
+    ("2026-09-02", "A8",
+     "Built the handoff manager — the escalation-to-human branch — on the engine Shagun's review had "
+     "just hardened. Deliberately thin: routing reads RoutingRule's bare dicts directly rather than "
+     "building types B1/M13 will replace, and context is packaged as refs + a summary, not inlined "
+     "PII (the agent tool fetches the transcript by conversation_id). The failure handling is the "
+     "substance — dispatch behind an adapter seam (the support platform is unknown, POA/07 §10.1), "
+     "retry per queue, no-agent/after-hours falls to the fallback queue, and if every queue is "
+     "exhausted the handoff is dead-lettered, never dropped silently (a lost escalation is a customer "
+     "left hanging). Lifecycle ledger tracks routed->accepted->resolved by ticket_ref for M14. "
+     "HandoffRequest is a message contract (§5). This completes A1-A8 — the whole Track A pipeline "
+     "except the A3 capture SDK.",
+     "10 new tests, 181 total green; ruff clean", "d23cef6 (PR #1)"),
+
+    ("2026-09-02", "A3",
+     "Built the capture SDK — the front door — closing out Track A. In prod this is a client-side JS "
+     "SDK (dwell/mid-flow-exit detection lives in the browser); who owns the portal embed is still "
+     "open, so I shipped the Python reference/server-side path behind the same Event contract, which "
+     "doubles as the QA harness that simulates each signal. The part worth testing is resilience: a "
+     "flush that fails keeps the batch and retries, so a transient A4 outage loses nothing, and "
+     "because event_id is client-generated, a lost-ack retry is deduped by A4 rather than "
+     "double-counted — I wrote the end-to-end test for both. Consent gating drops behavioural events "
+     "when analytics consent is off. With this, A1-A8 are all done: capture -> ingest -> store -> "
+     "stream -> match -> cap/precedence -> fire -> deferred -> handoff.",
+     "9 new tests, 190 total green; ruff clean", "b7a9320 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #
