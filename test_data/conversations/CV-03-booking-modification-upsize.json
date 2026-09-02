@@ -1,0 +1,92 @@
+{
+  "conversation_id": "CV-03-booking-modification-upsize",
+  "intent": "booking_modification",
+  "description": "Upsize an existing booking; the new rate is quoted and must be verified.",
+  "seed": 203,
+  "customer_id": "hfb-cust-cv03",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "I need a bigger car on booking HFB-000124",
+      "intent": "booking_modification",
+      "slots": {
+        "booking_ref": "HFB-000124"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Of course \u2014 a Full-size is the next step up. Shall I price that?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "yes go on",
+      "intent": "booking_modification",
+      "slots": {
+        "vehicle_class": "FCAR"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 4,
+      "speaker": "bot",
+      "text": "Full-size comes to \u00a362.02/day. Want me to switch it over?",
+      "intent": null,
+      "slots": {},
+      "claims": [
+        {
+          "kind": "price",
+          "pickup": "LHR",
+          "dropoff": "LHR",
+          "pickup_at": "2026-09-01T10:00:00Z",
+          "return_at": "2026-09-04T10:00:00Z",
+          "vehicle_class": "FCAR",
+          "quoted_price": "62.02",
+          "quoted_available": null,
+          "text_token": "\u00a362.02"
+        }
+      ],
+      "requests_handoff": false
+    },
+    {
+      "turn": 5,
+      "speaker": "customer",
+      "text": "do it",
+      "intent": "booking_modification",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 6,
+      "speaker": "bot",
+      "text": "Updated \u2014 your booking is now a Full-size.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "booking_modified",
+    "required_slots": [
+      "booking_ref",
+      "vehicle_class"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 3
+  }
+}

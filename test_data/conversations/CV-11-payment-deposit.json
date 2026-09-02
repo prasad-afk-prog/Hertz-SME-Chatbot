@@ -1,0 +1,50 @@
+{
+  "conversation_id": "CV-11-payment-deposit",
+  "intent": "payment_deposit",
+  "description": "Deposit/hold question \u2014 answered from policy, never asks for card data.",
+  "seed": 211,
+  "customer_id": "hfb-cust-cv11",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "How much deposit do you take at the desk?",
+      "intent": "payment_deposit",
+      "slots": {
+        "topic": "deposit"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "We place a hold on the driver's credit card at collection \u2014 the amount depends on vehicle class. It's released after the car comes back. Please don't share card details in chat.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "understood",
+      "intent": "payment_deposit",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "topic"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

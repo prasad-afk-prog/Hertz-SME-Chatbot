@@ -113,6 +113,7 @@ class VehicleCategory(str, Enum):
 class LocationType(str, Enum):
     airport = "airport"
     city = "city"
+    suburban = "suburban"        # S1 (POA/16 §16.2) — downtown/city + suburban stations
 
 
 class BookingStatus(str, Enum):
@@ -120,6 +121,7 @@ class BookingStatus(str, Enum):
     active = "active"
     completed = "completed"
     cancelled = "cancelled"
+    no_show = "no_show"          # S2 (POA/16 §16.1) — customer never collected; no-show fee applies
 
 
 class PricingUnit(str, Enum):
@@ -135,6 +137,29 @@ class PolicyTopic(str, Enum):
     driver_age = "driver_age"
     cross_border = "cross_border"
     late_return = "late_return"
+    no_show = "no_show"          # S2 (POA/16 §16.1)
+
+
+# ---- fee / dispute enums (S2 — POA/16 §16.1) ------------------------------ #
+class FeeType(str, Enum):
+    """Itemised charge types a booking can carry — the ones a customer asks
+    'why was I charged X?' about. `one_way` is priced at booking; the rest are
+    post-rental charges that can be disputed."""
+    one_way = "one_way"
+    late_return = "late_return"
+    no_show = "no_show"
+    fuel = "fuel"
+    additional_driver = "additional_driver"
+    young_driver = "young_driver"
+    cross_border = "cross_border"
+    other = "other"
+
+
+class DisputeResolution(str, Enum):
+    upheld = "upheld"                      # charge is correct, stands
+    refunded = "refunded"                  # charge was wrong, fully reversed
+    partial_refund = "partial_refund"      # charge partly reduced to the correct amount
+    escalated_to_human = "escalated_to_human"
 
 
 # --------------------------------------------------------------------------- #
@@ -232,6 +257,19 @@ class Cancellation(BaseModel):
     policy: str
 
 
+class FeeLine(BaseModel):
+    """An itemised charge on a booking (S2 — POA/16 §16.1). `one_way` is part of
+    the quoted `total`; late-return / no-show / fuel are post-rental charges that
+    surface on the final statement and can be disputed."""
+    model_config = ConfigDict(extra="forbid")
+    code: FeeType
+    label: str
+    amount: Decimal
+    currency: str = "GBP"
+    disputed: bool = False
+    dispute_reason: str | None = None
+
+
 class Booking(BaseModel):
     model_config = ConfigDict(extra="forbid")
     booking_id: str
@@ -253,6 +291,9 @@ class Booking(BaseModel):
     deposit: Decimal | None = None
     tax: Decimal | None = None                              # VAT component of total
     cancellation: Cancellation | None = None
+    # S2 (POA/16 §16.1) — one-way and itemised/disputable charges
+    one_way_fee: Decimal | None = None                      # set when dropoff != pickup
+    fees: list[FeeLine] = Field(default_factory=list)       # itemised charges (incl. disputes)
 
 
 # --------------------------------------------------------------------------- #
@@ -428,6 +469,77 @@ class RoutingRule(BaseModel):
     fallback_queue: str | None = None
 
 
+# ---- engagement decision (A6/M05 -> M08) — POA/05, POA/18 §5 -------------- #
+# NOTE (cross-track): the reserve->confirm/rollback handshake is shared with
+# Track B's M08. Shagun has a local POA/18 §5 edit for it; reconcile these names
+# with that when it lands.
+class SuppressionReason(str, Enum):
+    frequency_cap = "frequency_cap"       # per-trigger cap hit
+    global_cap = "global_cap"             # per-customer global cap hit
+    cooldown = "cooldown"                 # inside the global quiet period
+    precedence_loss = "precedence_loss"   # lost precedence arbitration
+
+
+class MatchCandidate(BaseModel):
+    """One in-session trigger match handed to M05 for cap/precedence arbitration."""
+    model_config = ConfigDict(extra="forbid")
+    trigger: TriggerConfig
+    signal_at: datetime
+
+
+class EngagementDecision(BaseModel):
+    """M05's verdict. `reservation_id` is the handle M08 confirms (on delivery) or
+    rolls back (on failure), so a failed send never burns the customer's cap —
+    the reserve->confirm/rollback contract (POA/05 §3.2)."""
+    model_config = ConfigDict(extra="forbid")
+    approved: bool
+    customer_id: str
+    reservation_id: str | None = None
+    winner_trigger_id: str | None = None
+    suppression_reason: SuppressionReason | None = None                # set when not approved
+    losers: dict[str, SuppressionReason] = Field(default_factory=dict)  # trigger_id -> reason (M14)
+
+
+class FireMessage(BaseModel):
+    """A5/M04 -> M08/B2: start a conversation for an approved engagement. Carries
+    A6's reservation_id so M08 confirms (on delivery) / rolls back (on failure)."""
+    model_config = ConfigDict(extra="forbid")
+    reservation_id: str
+    customer_id: str
+    trigger_id: str
+    event_id: str
+    message_template_ref: str | None = None
+    occurred_at: datetime
+
+
+# ---- handoff (M12 -> M04 -> A8/M07) — POA/07, POA/18 §5 ------------------- #
+# NOTE (cross-track): raised by Track B's M12; reconcile field names with that
+# when B6 lands. Kept thin so RoutingRule's bare match/route/sla dicts (M13) can
+# be tightened by B1 without reworking A8.
+class HandoffReason(str, Enum):
+    cannot_resolve = "cannot_resolve"            # the bot could not help
+    customer_requested = "customer_requested"
+    verification_failed = "verification_failed"  # M10 could not verify a claim
+    complaint = "complaint"
+    error = "error"
+
+
+class HandoffRequest(BaseModel):
+    """Escalate a conversation to a human (a message, not a call — POA/18 §5).
+    Context is carried as refs/summary, not inlined PII (M15 §4)."""
+    model_config = ConfigDict(extra="forbid")
+    conversation_id: str
+    customer_id: str
+    reason: HandoffReason
+    language: str = "en"
+    customer_type: str | None = None             # individual|SME|corporate (dict-matched, thin)
+    priority: str | None = None                  # hint; a routing rule may override
+    event_id: str | None = None
+    booking_reference: str | None = None
+    transcript_summary: str | None = None        # short human summary from M08/M12
+    unresolved_claim: str | None = None          # e.g. a claim M10 could not verify
+
+
 # --------------------------------------------------------------------------- #
 # LLM fixtures & claims (M09 <-> M10)
 # --------------------------------------------------------------------------- #
@@ -501,6 +613,29 @@ class Scenario(BaseModel):
     booking_api_failures: list[FailureKey] = Field(default_factory=list)
     prior_engagements: list[datetime] = Field(default_factory=list)  # for cap
     expected: Expected
+
+
+# --------------------------------------------------------------------------- #
+# Fee-dispute fixtures (S2 — POA/16 §16.1: "why was I charged X?" / disputes)
+#
+# Hand-authored, deterministic fixtures parallel to the golden Scenario tier but
+# for the fees/charges domain rather than the proactive trigger pipeline. Each
+# pins a booking's billed fee against the rule-correct amount and the expected
+# dispute resolution, so fee/claim-dispute conversations (Intent.claim_dispute /
+# Intent.fees_and_charges) have grounded, checkable expected outcomes.
+# --------------------------------------------------------------------------- #
+class FeeDispute(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dispute_id: str
+    description: str
+    seed: int
+    customer_id: str
+    booking_id: str
+    fee: FeeLine                       # the charge under dispute, as billed
+    customer_message: str              # inbound "why was I charged X?"
+    correct_amount: Decimal            # rule-correct amount (== fee.amount when upheld)
+    resolution: DisputeResolution      # pinned expected outcome
+    grounds: str                       # the policy/rule the resolution rests on
 
 
 # --------------------------------------------------------------------------- #
@@ -627,3 +762,7 @@ class Dataset(BaseModel):
     policies: list[Policy] = Field(default_factory=list)
     # S3 — scripted conversation trees (POA/16 §16.4/§16.6)
     conversations: list[ConversationScenario] = Field(default_factory=list)
+    # S2 — hand-authored fee-dispute fixtures (POA/16 §16.1)
+    fee_disputes: list[FeeDispute] = Field(default_factory=list)
+    # S5 — load/SLA/timeout targets this dataset is sized against (POA/16 §16.3)
+    load_profile: dict = Field(default_factory=dict)

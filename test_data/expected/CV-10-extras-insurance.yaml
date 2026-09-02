@@ -1,0 +1,8 @@
+outcome: booking_modified
+required_slots:
+- extra
+- booking_ref
+all_claims_verified: true
+delivered_excludes: []
+superseded_tokens: []
+min_bot_turns: 2

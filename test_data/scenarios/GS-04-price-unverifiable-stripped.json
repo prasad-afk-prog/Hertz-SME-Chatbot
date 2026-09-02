@@ -36,7 +36,7 @@
   },
   "events": [
     {
-      "event_id": "db30a5b4-e5d9-4902-9048-436fb3e59118",
+      "event_id": "f6ae7fc2-4de7-5094-81cb-1b3d745795a0",
       "customer_id": "hfb-cust-gs04",
       "session_id": "sess-gs04-00",
       "signal_type": "error_hit",

@@ -1,0 +1,46 @@
+{
+  "conversation_id": "CV-15-out-of-scope-declined",
+  "intent": "out_of_scope",
+  "description": "Unrelated request \u2014 the bot declines and redirects rather than answering.",
+  "seed": 215,
+  "customer_id": "hfb-cust-cv15",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "Can you book me a hotel in Paris too?",
+      "intent": "out_of_scope",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "I can only help with vehicle rental, I'm afraid \u2014 I can't book hotels. Anything I can do on the car side?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "no, never mind",
+      "intent": "out_of_scope",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "declined_out_of_scope",
+    "required_slots": [],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

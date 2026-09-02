@@ -1,0 +1,50 @@
+{
+  "conversation_id": "CV-14-general-info",
+  "intent": "general_info",
+  "description": "Policy question with no booking attached.",
+  "seed": 214,
+  "customer_id": "hfb-cust-cv14",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "What's the minimum age to rent with you?",
+      "intent": "general_info",
+      "slots": {
+        "topic": "driver_age"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "The minimum is 21 for most classes, and drivers under 25 pay a young-driver surcharge. Premium classes may require 25+.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "thanks",
+      "intent": "general_info",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "resolved",
+    "required_slots": [
+      "topic"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 1
+  }
+}

@@ -112,3 +112,43 @@ Phase 0 foundation — build first; M02/M04 depend on it. ~2–3 weeks.
 1. Data-retention window for raw events (legal/Hertz policy)?
 2. Redis: single vs cluster; is it shared infra or dedicated?
 3. Do we need an analytical copy (warehouse) for M14, or query Postgres directly?
+
+## 11. Build notes / deviations (A2 — 2026-09-01)
+
+Delivered in `services/event_pipeline/store/` on the shared platform template.
+
+**Done (§5 tasks 1–5):**
+- **Schema** (`tables.py`) — `events` (append-only, PK `event_id` for idempotency) +
+  `event_outbox`, with the §3.1 indexes. JSON columns are real **JSONB on Postgres**
+  and plain JSON on SQLite (`JSON().with_variant(JSONB, "postgresql")`), and the
+  outbox PK is `BigInteger().with_variant(Integer, "sqlite")` — bigserial in prod,
+  autoincrement rowid in tests.
+- **Transactional write+publish** (`store.py::write_event`) — inserts `events` +
+  `event_outbox` in one transaction; idempotent (existence check + `IntegrityError`
+  backstop → returns False on a duplicate `event_id`, never double-enqueues).
+- **Outbox relay** (`relay.py`) — publish FIRST, then mark; per-row marking so a
+  mid-batch failure never re-publishes delivered rows. At-least-once; consumers
+  dedupe on `event_id`. **Property-tested**: no event lost under a flaky publisher
+  (§7), and idempotent writes (§7).
+- **Redis Streams** (`publisher.py`) — `RedisStreamPublisher` (XADD to `events:in`,
+  approximate `maxlen` trim) + `ensure_group("trigger-eval")` for M04/A5. The relay
+  depends only on a `StreamPublisher` protocol, so it's tested against an in-memory
+  publisher with no Redis.
+- **Read models** (§3.4) — `recent_events`, `session_events`, `last_event_at`, and
+  `has_repeated_search` (signal I). Wired a `postgres` readiness check into the
+  event-pipeline app (`app.state.event_store` is what A4 will write through).
+
+**Deferred (honest scope):**
+- §5.6 retention / monthly-partition-pruning job — gated on open question 1; the
+  schema comments mark the partition key.
+- §5.7 signal **J** (`last_booking_at` / dormancy) — that timestamp lives in the
+  booking/customer store, not the event log, so it's a cross-store query, not A2.
+- Live Redis consumer-group integration test (needs a running Redis — docker-compose
+  is provided; unit tests cover the publish contract with a fake).
+- **Async** SQLAlchemy + **Alembic** migrations: kept **sync** (consistent with the
+  rest of the services layer; avoids pytest-asyncio in shared deps) and used
+  `bootstrap.create_all` for local/dev + tests. Prod migrations remain Alembic's job.
+
+**Acceptance (§6):** exactly-once handoff + idempotency are verified under induced
+failures. Latency-target and retention/consumer-resume criteria await a live
+Postgres/Redis integration environment.

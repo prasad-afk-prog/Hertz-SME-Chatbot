@@ -1,0 +1,7 @@
+outcome: resolved
+required_slots:
+- fee_type
+all_claims_verified: true
+delivered_excludes: []
+superseded_tokens: []
+min_bot_turns: 2

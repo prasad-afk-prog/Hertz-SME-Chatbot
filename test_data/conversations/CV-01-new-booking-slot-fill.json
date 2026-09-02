@@ -1,0 +1,114 @@
+{
+  "conversation_id": "CV-01-new-booking-slot-fill",
+  "intent": "new_booking",
+  "description": "Slot-filling across turns: location, dates, class \u2014 then a live-verified quote.",
+  "seed": 201,
+  "customer_id": "hfb-cust-cv01",
+  "language": "en",
+  "turns": [
+    {
+      "turn": 1,
+      "speaker": "customer",
+      "text": "I need to hire a car next week",
+      "intent": "new_booking",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 2,
+      "speaker": "bot",
+      "text": "Happy to help \u2014 which airport or city are you collecting from?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 3,
+      "speaker": "customer",
+      "text": "London Heathrow",
+      "intent": "new_booking",
+      "slots": {
+        "pickup": "LHR"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 4,
+      "speaker": "bot",
+      "text": "Got it. What dates do you need it, and what size of vehicle?",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 5,
+      "speaker": "customer",
+      "text": "Pick up the 1st, back on the 4th \u2014 something mid-size",
+      "intent": "new_booking",
+      "slots": {
+        "pickup_at": "2026-09-01T10:00:00+00:00",
+        "return_at": "2026-09-04T10:00:00+00:00",
+        "vehicle_class": "ICAR"
+      },
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 6,
+      "speaker": "bot",
+      "text": "An Intermediate at London Heathrow is \u00a352.21/day for those dates. Shall I book it?",
+      "intent": null,
+      "slots": {},
+      "claims": [
+        {
+          "kind": "price",
+          "pickup": "LHR",
+          "dropoff": "LHR",
+          "pickup_at": "2026-09-01T10:00:00Z",
+          "return_at": "2026-09-04T10:00:00Z",
+          "vehicle_class": "ICAR",
+          "quoted_price": "52.21",
+          "quoted_available": null,
+          "text_token": "\u00a352.21"
+        }
+      ],
+      "requests_handoff": false
+    },
+    {
+      "turn": 7,
+      "speaker": "customer",
+      "text": "yes please, book it",
+      "intent": "new_booking",
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    },
+    {
+      "turn": 8,
+      "speaker": "bot",
+      "text": "Booked \u2014 confirmation is on its way to your account email.",
+      "intent": null,
+      "slots": {},
+      "claims": [],
+      "requests_handoff": false
+    }
+  ],
+  "branches": [],
+  "expected": {
+    "outcome": "booking_created",
+    "required_slots": [
+      "pickup",
+      "pickup_at",
+      "return_at",
+      "vehicle_class"
+    ],
+    "all_claims_verified": true,
+    "delivered_excludes": [],
+    "superseded_tokens": [],
+    "min_bot_turns": 4
+  }
+}

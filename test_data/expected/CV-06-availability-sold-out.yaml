@@ -1,0 +1,9 @@
+outcome: resolved
+required_slots:
+- pickup
+- vehicle_class
+all_claims_verified: true
+delivered_excludes:
+- available
+superseded_tokens: []
+min_bot_turns: 1

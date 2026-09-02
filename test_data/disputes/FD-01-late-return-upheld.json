@@ -1,0 +1,19 @@
+{
+  "dispute_id": "FD-01-late-return-upheld",
+  "description": "Returned 3h beyond the 29-min grace; one extra day is correctly charged.",
+  "seed": 201,
+  "customer_id": "hfb-cust-fd01",
+  "booking_id": "bk-fd01",
+  "fee": {
+    "code": "late_return",
+    "label": "Late return (1 extra day)",
+    "amount": "41.80",
+    "currency": "GBP",
+    "disputed": true,
+    "dispute_reason": "Customer feels a few hours late shouldn't cost a full day"
+  },
+  "customer_message": "Why was I charged an extra day? I was only about 3 hours late.",
+  "correct_amount": "41.80",
+  "resolution": "upheld",
+  "grounds": "pol-late: beyond the 29-minute grace, each started 24h is one rental day."
+}

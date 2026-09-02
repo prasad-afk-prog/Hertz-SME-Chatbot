@@ -1,0 +1,19 @@
+{
+  "dispute_id": "FD-03-no-show-upheld",
+  "description": "Neither collected nor cancelled before pickup; the one-day no-show fee is valid.",
+  "seed": 203,
+  "customer_id": "hfb-cust-fd03",
+  "booking_id": "bk-fd03",
+  "fee": {
+    "code": "no_show",
+    "label": "No-show fee (one rental day)",
+    "amount": "60.50",
+    "currency": "EUR",
+    "disputed": true,
+    "dispute_reason": "Customer says they simply didn't need the car in the end"
+  },
+  "customer_message": "I didn't take the car at all \u2014 why am I being charged a no-show fee?",
+  "correct_amount": "60.50",
+  "resolution": "upheld",
+  "grounds": "pol-noshow: one rental day applies when a booking is neither collected nor cancelled."
+}

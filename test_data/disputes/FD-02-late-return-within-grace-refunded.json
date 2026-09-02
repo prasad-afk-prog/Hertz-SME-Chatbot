@@ -1,0 +1,19 @@
+{
+  "dispute_id": "FD-02-late-return-within-grace-refunded",
+  "description": "Returned 20 min late (inside grace) yet billed a late day; must be reversed.",
+  "seed": 202,
+  "customer_id": "hfb-cust-fd02",
+  "booking_id": "bk-fd02",
+  "fee": {
+    "code": "late_return",
+    "label": "Late return (1 extra day)",
+    "amount": "32.00",
+    "currency": "GBP",
+    "disputed": true,
+    "dispute_reason": "Returned within the 29-minute grace period"
+  },
+  "customer_message": "I dropped the car back 20 minutes late and got charged a whole day?",
+  "correct_amount": "0.00",
+  "resolution": "refunded",
+  "grounds": "pol-late: returns within 29 minutes of the due time are not charged."
+}

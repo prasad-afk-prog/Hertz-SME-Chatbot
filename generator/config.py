@@ -31,8 +31,23 @@ def _default_customer_type_mix() -> dict[CustomerType, float]:
 
 
 def _default_region_language() -> dict[str, float]:
-    # region/language -> weight
-    return {"UK/en": 0.6, "DE/de": 0.2, "FR/fr": 0.1, "ES/es": 0.1}
+    # region/language -> weight (S1 added a US/en region — POA/16 §16.2)
+    return {"UK/en": 0.55, "DE/de": 0.18, "FR/fr": 0.09, "ES/es": 0.08, "US/en": 0.10}
+
+
+@dataclass
+class LoadProfile:
+    """S5 (POA/16 §16.3) — load & SLA targets for the soak/load tier and the
+    mocks' timeout behaviour. Explicit, documented knobs (not magic numbers);
+    these are starting benchmarks, to be revisited against real traffic."""
+    events_per_sec: int = 10           # normal sustained ingest rate
+    peak_eps: int = 50                 # expected peak
+    burst_eps: int = 100               # short-burst ceiling
+    concurrent_customers: int = 500    # normal concurrency target
+    stress_customers: int = 1000       # stress / soak target
+    sla_standard_ms: int = 2000        # reply with no external call  (< 2 s)
+    sla_tool_ms: int = 5000            # tool/API-backed reply         (< 5 s)
+    mock_timeout_ms: int = 5000        # mocks must fail deterministically past this, never hang
 
 
 @dataclass
@@ -66,3 +81,10 @@ class GenConfig:
 
     # dormancy threshold (signal J)
     dormancy_days: int = 90
+
+    # one-way bookings — share of generated bookings with dropoff != pickup
+    # (S1 — POA/16 §16.2; exercises RateCard.one_way_fee / Booking.one_way_fee)
+    one_way_booking_share: float = 0.15
+
+    # load / SLA profile (S5 — POA/16 §16.3)
+    load: LoadProfile = field(default_factory=LoadProfile)

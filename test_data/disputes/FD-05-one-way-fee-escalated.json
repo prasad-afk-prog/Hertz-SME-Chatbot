@@ -1,0 +1,19 @@
+{
+  "dispute_id": "FD-05-one-way-fee-escalated",
+  "description": "One-way fee is correct, but the alleged branch waiver isn't in the record; needs a human.",
+  "seed": 205,
+  "customer_id": "hfb-cust-fd05",
+  "booking_id": "bk-fd05",
+  "fee": {
+    "code": "one_way",
+    "label": "One-way drop-off fee",
+    "amount": "95.00",
+    "currency": "GBP",
+    "disputed": true,
+    "dispute_reason": "Customer says the branch agent verbally waived the one-way fee"
+  },
+  "customer_message": "The desk told me the one-way fee would be waived, but I was still charged it.",
+  "correct_amount": "95.00",
+  "resolution": "escalated_to_human",
+  "grounds": "A verbal waiver isn't in the booking record and the bot can't verify it -> M07 handoff."
+}

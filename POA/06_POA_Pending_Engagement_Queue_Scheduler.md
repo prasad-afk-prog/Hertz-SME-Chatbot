@@ -97,3 +97,39 @@ Phase 3. ~2–3 weeks (after M04/M05/M08 exist).
 1. Fire deferred on raw login, or on the next in-session signal after login?
 2. Default wait/expiry per deferred trigger?
 3. Do multiple pending entries for one customer compete via precedence, or FIFO?
+
+## 11. Build notes / deviations (A7 — 2026-09-02)
+
+Delivered in `services/event_pipeline/pending/`, on the A1 template, reusing A6
+(arbitration) + the `FireMessage` contract + A5's `DeferredItem`.
+
+- **Queue** (`tables.py`, `queue.py`): `pending_engagements` with
+  `eligible_at = created + wait_period`, `expires_at = created + expiry`, status
+  pending→raising→raised / expired. `PendingQueue.enqueue` **is** A5's DeferredSink
+  (§10.3 answered by wiring, not duplication). Event context for re-eval is
+  fetched from A2 by `event_id` rather than duplicated into the queue.
+- **Time-travel**: every read takes an explicit `now`, so wait/eligibility/expiry
+  are tested by advancing a passed clock (§7).
+- **Expiry sweep (R)** `expire_due(now)` marks overdue **pending** rows expired and
+  returns their ids for Z2 logging — never touches raised/raising (tested).
+- **Login re-evaluation (S)** `PendingScheduler.on_login(customer, now)`: under a
+  per-customer lock, fetch eligible entries → arbitrate through **A6** (multiple
+  pending entries **compete on precedence** — §10.3 answered: precedence, not
+  FIFO) → fire the winner via the FireSink, mark `raised`; losers stay pending for
+  a later login; cap-suppressed entries stay pending. Concurrency test: 5 parallel
+  logins raise **at most once** (§6).
+- **Reconcile** `reconcile_stuck(now, older_than)` releases rows stuck in `raising`
+  (crash between claim and raise) back to pending (§5.6).
+- **Celery** (`tasks.py`): `beat_schedule()` + `register_pending_tasks(celery_app,
+  queue)` wire the sweep/reconcile to Beat. No top-level celery import (the worker
+  passes its app), so the module imports in the API/test process; task bodies are
+  thin wrappers over the directly-tested queue methods.
+
+**Deviations / deferred:** §10.1 — fires on **login** (not "next in-session
+signal"); the in-session merge at login is a documented extension (A5 would pass
+its in-session candidates in). Atomic claim uses the per-customer lock (prod:
+`SKIP LOCKED`). Beat wiring is integration-run, not unit.
+
+**Acceptance (§6):** deferred match stored and raised once on next eligible login
+✓, expiry sweep discards+logs and never raises ✓, concurrent logins never
+double-raise ✓, wait period honoured ✓.

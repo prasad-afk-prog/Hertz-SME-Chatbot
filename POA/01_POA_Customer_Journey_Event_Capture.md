@@ -122,3 +122,36 @@ be frozen early because M02–M05 depend on it.
 2. Are I/J derived here or entirely inside M04? (recommend: raw inputs here, derivation in M04.)
 3. What consent framework governs behavioural tracking for Hertz customers?
 4. Existing analytics layer we can reuse vs. greenfield SDK?
+
+## 12. Build notes / deviations (A3 — 2026-09-02)
+
+Delivered a **Python reference/server-side capture SDK** in
+`services/event_pipeline/capture/`. The production client is a JS SDK on the
+portal (§4.1 option A); this Python client is the **server-side emission path**
+(§4.1 option B), the contract reference, and the QA harness (§6.7) — placement is
+still §11.1-open, so both live behind the same shared `Event` contract.
+
+- **CaptureClient** (`client.py`) — builds schema-valid `generator.models.Event`
+  for the eight signals with convenience detectors (`booking_abandoned(step=…)`,
+  `error_hit(error_code=…)`, `extended_dwell(dwell_ms=…)`, …) so each carries the
+  right payload (§7). `event_id` is client-generated (idempotency, §4.2).
+- **Session correlation** (`session.py`) — a stable `session_id` stitches events;
+  `start_session()` begins a fresh one on login.
+- **Consent gating** (§3, §8) — captures are dropped when analytics consent is
+  off; nothing is buffered or emitted (tested).
+- **Offline buffer + retry** (`buffer.py`) — a capped buffer holds events; a
+  `flush` that hits a transport failure **keeps the batch** and retries next time,
+  so no event is lost under a transient outage (§7), and the cap bounds memory.
+- **Delivery** (`transport.py`) — batches to A4's `/v1/events:batch` over stdlib
+  urllib (no heavy dep, §5); the `Transport` seam lets the tests drive A4 through
+  its TestClient. An **SDK→A4 contract test** proves valid events are accepted +
+  stored, and a **lost-ack retry** re-sends the same `event_id`s → A4 dedupes (§8).
+
+**Deferred:** the client-side JS SDK + browser detectors (dwell/mid-flow-exit),
+`sendBeacon`/before-unload flush, and IndexedDB buffering (§4.3) — all portal-team
+work behind the contract. Signals I/J are derived server-side in A4/A7 (§11.2
+recommendation); this SDK emits the raw search events they read.
+
+**Acceptance (§6/§7):** each signal is emittable with a schema-valid payload
+(abandon carries the step, error carries the code) ✓; no loss under a transient
+API outage (buffered + replayed) ✓; idempotent via `event_id` ✓; consent-gated ✓.

@@ -9,8 +9,21 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Runtime deps for the HFB services (A1 platform skeleton onward, POA/15).
+services = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic-settings>=2.2",
+    "prometheus-client>=0.20",
+    "sqlalchemy>=2.0",            # A2 Event Store
+    "psycopg[binary]>=3.1",       # A2 Postgres driver (tests use bundled SQLite)
+    "redis>=5.0",                 # A2 Redis Streams / A5 counters
+    "celery>=5.3",                # A7 Pending Queue & Deferred Scheduler
+]
 dev = [
     "pytest>=8.0",
+    "httpx>=0.27",     # FastAPI TestClient
+    "ruff>=0.5",
     # optional enhancements referenced in POA/16 §8 (not required to run the scaffold):
     # "faker", "numpy", "hypothesis", "respx", "testcontainers", "polyfactory",
 ]
@@ -19,3 +32,15 @@ dev = [
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["UP042"]   # keep the codebase's (str, Enum) idiom over StrEnum
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency markers are called in argument defaults by design.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Security", "fastapi.Query"]
