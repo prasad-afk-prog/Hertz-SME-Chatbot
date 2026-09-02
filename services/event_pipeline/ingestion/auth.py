@@ -30,9 +30,26 @@ class SourceAuthenticator(Protocol):
 
 
 class AllowAllAuthenticator:
-    """Local/dev only — no authentication. Logged loudly so it never ships silently."""
+    """Local/dev only — no authentication.
+
+    Warns on construction AND on every request. The docstring used to promise
+    "logged loudly so it never ships silently" while logging nothing at all,
+    which is worse than an honest gap: a reviewer reads the claim and stops
+    looking. Unauthenticated ingestion is the spoofed-event risk in POA/02 §3.3,
+    so the warning has to be real.
+    """
+
+    def __init__(self) -> None:
+        log.warning(
+            "ingestion.auth.DISABLED — AllowAllAuthenticator accepts every request "
+            "unauthenticated. Local/dev only; never deploy this."
+        )
 
     def authenticate(self, request: Request) -> Principal:
+        log.warning(
+            "ingestion.auth.unauthenticated_request",
+            extra={"path": str(request.url.path)},
+        )
         return Principal(source="local")
 
 

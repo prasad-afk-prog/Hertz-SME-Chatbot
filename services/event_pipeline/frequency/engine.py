@@ -17,10 +17,13 @@ from datetime import datetime
 from generator.durations import parse_duration
 from generator.models import EngagementDecision, FrequencyCap, MatchCandidate, SuppressionReason
 from generator.reference import would_fire
+from services.platform import get_logger
 
 from .ledger import EngagementLedger
-from .lock import NullLock
+from .lock import PerCustomerLock
 from .precedence import choose_winner
+
+log = get_logger("frequency.engine")
 
 
 class FrequencyPrecedenceEngine:
@@ -35,7 +38,16 @@ class FrequencyPrecedenceEngine:
         self.ledger = ledger
         self.global_cap = global_cap
         self.cooldown = parse_duration(cooldown) if cooldown else None
-        self.lock = lock or NullLock()
+        # Default to a REAL lock, not NullLock. reserve() is a read-decide-write
+        # sequence: with no lock, two events for one customer racing through it
+        # both pass the cap check and both reserve, and the cap is exceeded.
+        # The invariant suite runs single-threaded, so it cannot catch that —
+        # which is exactly why the default has to be the safe one.
+        #
+        # PerCustomerLock only serialises WITHIN a process. A multi-worker
+        # deployment still needs the distributed lock (Redis SETNX / Postgres
+        # advisory) described in POA/05 §8, passed in here.
+        self.lock = lock if lock is not None else PerCustomerLock()
 
     def reserve(
         self, customer_id: str, candidates: list[MatchCandidate], now: datetime
@@ -86,13 +98,32 @@ class FrequencyPrecedenceEngine:
                 losers=losers,
             )
 
-    def confirm(self, reservation_id: str) -> None:
-        """M08 delivered — finalise the slot (POA/05 §3.2)."""
-        self.ledger.set_status(reservation_id, "confirmed")
+    def confirm(self, reservation_id: str) -> bool:
+        """M08 delivered — finalise the slot (POA/05 §3.2).
 
-    def rollback(self, reservation_id: str) -> None:
-        """M08 failed to deliver — release the slot so the cap isn't burned."""
-        self.ledger.set_status(reservation_id, "rolled_back")
+        Only a `reserved` row may be confirmed. Confirming an already
+        `rolled_back` reservation would re-burn a slot the customer never
+        received; confirming twice is a harmless no-op. Returns False when
+        nothing moved, so the caller can log rather than assume success.
+        """
+        return self.ledger.set_status(reservation_id, "confirmed", only_from=("reserved",))
+
+    def rollback(self, reservation_id: str, reason: str | None = None) -> bool:
+        """M08 failed to deliver — release the slot so the cap isn't burned.
+
+        Only a `reserved` row may be rolled back: releasing an already
+        `confirmed` engagement would hand back a slot that was genuinely used.
+
+        `reason` is accepted (and logged) so M08's rollback cause survives to
+        M14 — see POA/18 §5 item 2. It is optional so existing Track-A callers
+        are unaffected.
+        """
+        moved = self.ledger.set_status(reservation_id, "rolled_back", only_from=("reserved",))
+        if moved and reason:
+            log.info(
+                "engagement.rolled_back", extra={"reservation_id": reservation_id, "reason": reason}
+            )
+        return moved
 
     def _suppress_all(
         self, customer_id: str, candidates: list[MatchCandidate], reason: SuppressionReason
