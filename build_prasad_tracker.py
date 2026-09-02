@@ -179,10 +179,20 @@ TASKS = [
      "clean. Commit 2b46310 (PR #1)"),
 
     ("A3", "Customer Journey & Behavioural Event Capture (SDK / contract)",
-     "POA/01", "Track A", "Not started", "", "", "",
-     "NEXT — the last Track A module. Depends on the A4 contract (done), not the whole service. "
-     "Client-side/server SDK that emits generator.models.Event to A4's POST /v1/events; the wire "
-     "contract already exists, so this is the emit/batch/consent-gating layer."),
+     "POA/01", "Track A", "In progress", "2026-09-02", "",
+     "Core done + tested — COMPLETES TRACK A. A Python reference/server-side capture SDK in "
+     "services/event_pipeline/capture/ (the prod client is JS on the portal; §4.1 placement is open, "
+     "so both sit behind the shared Event contract). CaptureClient builds schema-valid "
+     "generator.models.Event for the 8 signals (detectors stamp the right payload — abandon carries "
+     "the step, error the code), correlates a session (stable session_id, start_session on login), "
+     "gates on analytics consent (off -> dropped, nothing emitted), buffers to a capped queue, and "
+     "flushes batches to A4's /v1/events:batch over stdlib urllib. A failed flush KEEPS the batch and "
+     "retries -> no loss under a transient outage. event_id is client-generated for idempotency; an "
+     "SDK->A4 contract test proves valid events are accepted+stored and a lost-ack retry is deduped "
+     "by A4. No models.py change (reuses Event). Deferred (POA/01 §12): the client-side JS SDK + "
+     "browser detectors, sendBeacon flush, IndexedDB buffering — portal-team work behind the contract.",
+     "services/event_pipeline/capture/{client,buffer,transport,session}.py, POA/01 §12; "
+     "tests/test_capture_sdk.py (9) — 190 total green, ruff clean. Commit b7a9320 (PR #1)"),
 
     ("A7", "Pending-Engagement Queue & Deferred Scheduler (Celery)",
      "POA/06", "Track A", "In progress", "2026-09-02", "",
@@ -383,6 +393,18 @@ LOG = [
      "HandoffRequest is a message contract (§5). This completes A1-A8 — the whole Track A pipeline "
      "except the A3 capture SDK.",
      "10 new tests, 181 total green; ruff clean", "d23cef6 (PR #1)"),
+
+    ("2026-09-02", "A3",
+     "Built the capture SDK — the front door — closing out Track A. In prod this is a client-side JS "
+     "SDK (dwell/mid-flow-exit detection lives in the browser); who owns the portal embed is still "
+     "open, so I shipped the Python reference/server-side path behind the same Event contract, which "
+     "doubles as the QA harness that simulates each signal. The part worth testing is resilience: a "
+     "flush that fails keeps the batch and retries, so a transient A4 outage loses nothing, and "
+     "because event_id is client-generated, a lost-ack retry is deduped by A4 rather than "
+     "double-counted — I wrote the end-to-end test for both. Consent gating drops behavioural events "
+     "when analytics consent is off. With this, A1-A8 are all done: capture -> ingest -> store -> "
+     "stream -> match -> cap/precedence -> fire -> deferred -> handoff.",
+     "9 new tests, 190 total green; ruff clean", "b7a9320 (PR #1)"),
 ]
 
 # --------------------------------------------------------------------------- #
