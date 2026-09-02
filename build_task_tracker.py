@@ -125,10 +125,29 @@ TASKS = [
 
     # --- Track B: service modules ------------------------------------------ #
     ("B1", "Admin Console & Trigger Configuration — persistence + CRUD",
-     "POA/13", "Track B", "Not started", "", "", "",
-     "NOTE: the config CONTRACT already exists (TriggerConfig, RoutingRule, FrequencyCap, Deferred "
-     "in generator/models.py + defaults in fixtures.py). This task owes persistence + admin CRUD, "
-     "not the schema. RoutingRule.match/.route/.sla are bare dicts to tighten."),
+     "POA/13", "Track B", "DONE (service layer)", "2026-09-02", "2026-09-02",
+     "Shipped task 3 fully and 1/2/4 in part — POA/13 §9 wants data model + CRUD early so M04/M05 "
+     "have config, and that is what landed. Tasks 5/6/7 are genuinely blocked: RBAC needs M15's "
+     "auth model (Prasad's A1) plus §10.3's role matrix, the UI needs §10.1 answered (SPA or "
+     "embedded?), and dry-run needs the shared DSL validator. The FastAPI surface is deferred "
+     "because it adds a dependency to a shared file while the services/ layout is still "
+     "unconfirmed after six modules; the service layer is transport-agnostic so routes are "
+     "additive later. THE DSL DECISION: TriggerMatch.conditions is untyped list[dict] and §8 says "
+     "ONE validator shared with M04 — writing a second here manufactures exactly the divergence §8 "
+     "warns about, so everything AROUND the DSL is validated and conditions go through a named "
+     "DSLValidator seam whose default validates nothing AND SAYS SO (an advisory issue tells the "
+     "admin it went unchecked). A hole with a shape beats a guess. Two properties a naive version "
+     "gets wrong: rollback CREATES a version rather than deleting one (overwriting would punch a "
+     "hole in the audit exactly where someone reverted a bad config), and the audit is immutable "
+     "in practice — frozen entries, reads return a tuple, so history cannot be edited through a "
+     "returned value. Instant disable bypasses validation because the emergency brake must work on "
+     "a config that could no longer be published. Publishes a VERSION STAMP not a payload — a "
+     "payload would bake in a wire format invented on Prasad's behalf. generator/fixtures.py is "
+     "read never written (his file, POA/18 §2), and tests pin both that and that his shipped "
+     "fixtures pass their own validator.",
+     "services/admin/config/{models,validation,service}.py, "
+     "tests/test_admin_config_service.py (38 tests) — 320 total green. "
+     "Consolidated all 5 open Prasad questions into POA/18 §5b. Local only, not pushed."),
 
     ("B2", "Conversation Orchestrator (context + personalisation)",
      "POA/08", "Track B", "DONE", "2026-09-01", "2026-09-01",
@@ -446,6 +465,20 @@ REFERENCE = [
 ]
 
 
+def status_fill(status: str):
+    """Colour by status PREFIX, so qualified values still read correctly.
+
+    A status is often more informative with a qualifier — "DONE (7/7)",
+    "DONE (service layer)" — but an exact-match lookup silently falls through to
+    the grey not-started fill, which then says the opposite of the text beside
+    it. Matching the longest prefix keeps the colour and the words agreeing.
+    """
+    for key in sorted(STATUS_FILL, key=len, reverse=True):
+        if status.startswith(key):
+            return STATUS_FILL[key]
+    return TODO_FILL
+
+
 def _style_header(ws, columns, row=1):
     for i, (name, width) in enumerate(columns, start=1):
         c = ws.cell(row=row, column=i, value=name)
@@ -476,12 +509,16 @@ def build() -> None:
             c = ws.cell(row=r, column=i, value=val)
             c.alignment = Alignment(vertical="top", wrap_text=True)
             c.border = BORDER
-        ws.cell(row=r, column=5).fill = STATUS_FILL.get(row[4], TODO_FILL)
+        ws.cell(row=r, column=5).fill = status_fill(row[4])
         ws.cell(row=r, column=5).font = Font(bold=True)
         ws.row_dimensions[r].height = 92 if row[4] == "DONE" else 34
 
+    # `showErrorMessage=False` because several rows carry a qualified status
+    # ("DONE (7/7)"). The dropdown is a convenience for editing by hand; it must
+    # not flag the values the generator itself writes as invalid.
     dv = DataValidation(
-        type="list", formula1='"Not started,In progress,Blocked,DONE,Reverted"', allow_blank=False
+        type="list", formula1='"Not started,In progress,Blocked,DONE,Reverted"',
+        allow_blank=False, showErrorMessage=False,
     )
     ws.add_data_validation(dv)
     dv.add(f"E5:E{4 + len(TASKS)}")
