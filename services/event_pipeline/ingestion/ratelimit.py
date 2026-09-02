@@ -28,6 +28,11 @@ class InMemoryRateLimiter:
         self._now = now
         self._windows: dict[str, tuple[float, int]] = {}
 
+    #: Drop windows this many seconds past their start. Without eviction the
+    #: dict keeps one entry per (source, customer) seen since boot — a slow leak
+    #: in a long-lived process, and this one is on the live request path.
+    _EVICT_AFTER_S = 300.0
+
     def allow(self, source: str, customer_id: str) -> bool:
         if self.limit <= 0:
             return True
@@ -38,4 +43,12 @@ class InMemoryRateLimiter:
             start, count = now, 0
         count += 1
         self._windows[key] = (start, count)
+
+        if len(self._windows) > 1024:
+            self._evict(now)
         return count <= self.limit
+
+    def _evict(self, now: float) -> None:
+        stale = [k for k, (start, _) in self._windows.items() if now - start >= self._EVICT_AFTER_S]
+        for key in stale:
+            del self._windows[key]

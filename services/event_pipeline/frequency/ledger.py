@@ -34,13 +34,27 @@ class EngagementLedger:
                 status="reserved",
             ))
 
-    def set_status(self, reservation_id: str, status: str) -> None:
+    def set_status(
+        self, reservation_id: str, status: str, *, only_from: tuple[str, ...] | None = None
+    ) -> bool:
+        """Transition a reservation. Returns True if a row actually moved.
+
+        `only_from` guards the transition. Without it an unconditional UPDATE
+        lets a late or duplicated `confirm` land on an already `rolled_back`
+        row and silently re-burn a slot the customer never received — and a
+        call against an unknown reservation_id is a silent no-op rather than a
+        surfaced bug. Both are realistic: confirm/rollback come from M08 over a
+        network, where retries and out-of-order delivery are normal.
+        """
+        stmt = (
+            update(engagements)
+            .where(engagements.c.reservation_id == reservation_id)
+            .values(status=status, updated_at=datetime.now(UTC))
+        )
+        if only_from is not None:
+            stmt = stmt.where(engagements.c.status.in_(only_from))
         with self.engine.begin() as conn:
-            conn.execute(
-                update(engagements)
-                .where(engagements.c.reservation_id == reservation_id)
-                .values(status=status, updated_at=datetime.now(UTC))
-            )
+            return conn.execute(stmt).rowcount > 0
 
     def fire_times(self, customer_id: str, trigger_id: str | None = None) -> list[datetime]:
         """Timestamps of counted (reserved/confirmed) engagements — per trigger,
